@@ -8,25 +8,28 @@ $ screen -d -r MyA
 $ screen -rx MyA
 ```
 
+
 # Ctrl + a
-- d detach
-- s/l	horizontal split
-- l	vertical spilt
-- TAB	move
-- c	new	window
-- x	remove	window
-- C-a	swap window
-- n	next window
-- p	previous window
-- "jk	list and select window
-- A	name a window
-- k	close window
-- [	copy
-- ]	paste
+- d		detach
+- S		horizontal split
+  - |		vertical spilt
+  - TAB		move
+  - Q		unsplit
+- c		new	window
+  - A		name a window
+  - Ctrl-a	swap window
+    - n			next window
+    - p			previous window
+    - "/j/k		list and select window
+    - w			list windows
+  - k		close window
+- x		lock screen
+- [		copy mode
+- ]		paste
 
 
 # ~/.screenrc
-```
+```sh:.screenrc
 # Encoding
 defencodig utf-8
 
