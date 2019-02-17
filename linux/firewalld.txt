@@ -1,0 +1,46 @@
+Commands
+
+現在の設定をみる
+firewall-cmd --zone=public --list-all
+
+service sshをpublicから外す
+firewall-cmd --zone=public --remove-service=ssh --permanent
+
+ping応答しない
+firewall-cmd --zone=public --add-icmp-block=echo-request --permanent
+
+複数の条件でフィルタリング
+firewall-cmd --zone=public --add-rich-rule='rule family="ipv4" source address="192.168.0.0/24" service name="ssh" accept' --permanent
+
+firewall-cmd --zone=public --add-rich-rule='rule family="ipv4" source address="192.168.0.0/24" service name="samba" accept' --permanent
+
+firewall-cmd --zone=public --add-rich-rule='rule family="ipv4" source address="192.168.0.0/24" port port="22" protocol="tcp" accept'
+
+設定を反映する
+firewall-cmd --reload
+
+NICのゾーン変更
+firewall-cmd --zone=work --change-interface=eth0 --permanent
+
+    デフォルトゾーン(public)設定を操作するするときは"--zone=public"は省略可能
+    "--permanent"を付けなければ即時に設定が反映されるが再起動もしくは"--reload"した時には設定から外れる
+
+IPマスカレード
+
+firewall-cmd --zone=public --add-masquerade --permanent
+firewall-cmd --zone=trusted --add-masquerade --permanent
+firewall-cmd --permanent --direct --add-rule ipv4 nat POSTROUTING 0 -o eth0 -j MASQUERADE
+firewall-cmd --permanent --direct --add-rule ipv4 filter FORWARD 0 -i tun0 -o eth0 -j ACCEPT
+firewall-cmd --permanent --direct --add-rule ipv4 filter FORWARD 0 -i eth0 -o tun0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+NFQUEUE
+
+firewall-cmd --zone=public --permanent --direct --add-rule ipv4 filter OUTPUT 0 -d 8.8.8.8 -j NFQUEUE --queue-num 1
+
+firewall-cmd --zone=public --permanent --direct --add-rule ipv4 filter FORWARD 0 -i enp5s0 -j NFQUEUE --queue-num 1
+ダイレクトルールの一覧表示
+
+firewall-cmd --direct --get-all-rules
+ssh ポート番号変更
+
+cp /usr/lib/firewalld/services/ssh.xml /etc/firewalld/services/ssh.xml
+vi /etc/firewalld/services/ssh.xml

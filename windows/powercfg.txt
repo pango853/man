@@ -1,0 +1,5 @@
+
+powercfg -devicequery wake_armed
+
+powercfg -devicedisablewake "Broadcom NetXtreme Gigabit Ethernet"
+

@@ -1,0 +1,23 @@
+
+With an object such as Range (in Excel)
+
+Set V = Range("A1")
+Debug.Print VarType(V) = vbEmpty
+Debug.Print TypeName(V) = "Range"
+
+
+
+#. Dictionary
+Microsoft Scripting Runtime
+	The first thing to do is to create a reference to the Microsoft Scripting Runtime, which is the DLL that contains the Dictionary (as well as the FileSystemObject). To do that we open Excel, hit F11 to get to the Visual Basic environment and then select References from the Tools menu. Navigate down through the list of available references and select Microsoft Scripting Runtime (\Windows\system32\scrrun.dll). Once that's done the Dictionary is available for you to use in your code.
+http://www.techbookreport.com/tutorials/vba_dictionary.html
+
+Dim dict As Dictionary
+Dim v As Variant
+
+    'Create the dictionary          
+    Set dict = New Dictionary
+
+   'Add some (key, value) pairs
+    dict.Add "John", 34
+    dict.Add "Jane", 42
