@@ -1,0 +1,1 @@
+# Pango's Life Manual
