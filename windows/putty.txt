@@ -1,0 +1,24 @@
+
+
+
+
+putty.exe -ssh -2 -l username -pw password -m c:remote.cmd hostname
+plink root@myserver /etc/backups/do-backup.sh
+
+
+plink -ssh example.com -l username -pw password test.ksh
+
+putty.exe [-ssh | -telnet | -rlogin | -raw] [user@]host
+
+putty.exe telnet://host[:port]/
+putty.exe -load Ågsession nameÅh
+
+putty.exe -ssh emind@198.18.14.9
+putty.exe telnet://192.168.1.48/
+
+
+putty.exe -ssh jesin@192.168.1.102 -L 5901:192.168.1.102:5901
+putty.exe -ssh <user>@<linux-server-ip> -L <local port>:<linux-server-ip>:<remote vnc port>
+	-N: DonÅft start a shell or command at all
+
+

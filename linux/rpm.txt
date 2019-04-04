@@ -1,0 +1,27 @@
+
+
+CVE の対応状況などは
+rpm -q --changelog php | grep CVE
+
+
+CentOS の環境でyum updateを実行したところ、「Warning: RPMDB altered outside of yum. 」というメッセージが出力されているのに気が付きました。
+ちょっとGoogle検索してみると、yum clean allでキャッシュ等などを削除することで、この問題は解消するという記事が多く見られるのですが、私の環境では改善せず。
+ということで更に調べてみるとForumに改善方法が有りました。
+
+CentOS • View topic - RPMDB altered outside of yum /
+https://www.centos.org/forums/viewtopic.php?t=636
+
+yum history sync
+
+
+を実行してやることでrpm/yum DBと再同期が行われるようです。
+
+# yum history sync
+Loaded plugins: etckeeper, fastestmirror
+Syncing rpm/yum DB data for: ConsoleKit-0.4.1-3.el6.x86_64 ... Done.
+Syncing rpm/yum DB data for: ConsoleKit-libs-0.4.1-3.el6.x86_64 ... Done.
+snip...
+history sync
+
+
+yum clean all でも解消しない場合は試してみるのもいいのかもしれません。

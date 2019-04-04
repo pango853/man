@@ -5,7 +5,20 @@ $*
 *.swp
 .DS_Store
 
-*.BAK
 *-BAK/
-*.tmp
+*.BAK
 tmp/
+
+# Private
+*-secret.*
+*-SECRET.*
+*-private.*
+*-PRIVATE.*
+*-LOCAL.*
+*-OFF.*
+*-secret/
+*-SECRET/
+*-private/
+*-PRIVATE/
+*-LOCAL/
+*-OFF/

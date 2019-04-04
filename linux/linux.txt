@@ -1,0 +1,19 @@
+
+//念願のインストール！！！
+$ sudo -E go get github.com/jhchen/ansize
+
+// 移動
+$ mv go /usr/local/lib/go
+
+//パスを通す
+$ echo 'export PATH="/usr/local/lib/go/bin:$PATH"' >> ~/.bash_profile
+
+//画像を変換
+$ ansize /Users/yuhtanak/Downloads/errorneko.png /Users/yuhtanak/Downloads/errorneko.ascii
+
+//変換した.asciiファイルを/etc/motdに上書き
+$ cp /Users/yuhtanak/Downloads/errorneko.ascii /etc/motd
+
+//要らない行を削除
+//※変換したファイルは正方形になってしまうので、いらない行があればvimで削除する
+$ sudo vim /etc/motd
