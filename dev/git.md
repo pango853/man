@@ -35,6 +35,30 @@ ssh -T git@github.com
 
 
 
+# Via Proxy
+
+git config --global http.proxy http://user:pass@proxy.xxx.co.jp:8080
+git config --global https.proxy http://user:pass@proxy.xxx.co.jp:8080
+git config --global url."https://".insteadOf git://
+
+Or edit in .gitconfig directly.
+
+	[http]
+		proxy = http://proxy.example.com:8080
+	[https]
+		proxy = http://proxy.example.com:8080
+	[url "https://"]
+		insteadOf = git://
+
+For certificate verify:
+
+.gitconfig
+	[http]
+		sslcainfo = C:/Users/[UserName]/AppData/Local/Programs/Git/etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt
+
+
+
+
 # TODO
 
 gitolite3.noarch
