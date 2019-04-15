@@ -63,3 +63,17 @@ If you decide to create a .REG file to add or edit Dos devices, add a second bac
 > FORFILES /P C:\Temp /D -30 /M *.txt /C "cmd /c echo @path 0x09 was changed 30 days ago"
 > FORFILES /P C:\Temp /D -30 /M *.txt /C "cmd /c del @path"
 
+# Misc
+- Turn off Adaptive Brightness   
+  Remove SensrSvc.dll from \HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Svchost\LocalServiceAndNoImpersonation
+
+
+# Commands
+- Control Panel   
+  > control.exe
+- Proxy setting   
+  > control Inetcpl.cpl,Connections,4
+- Administrative Tools   
+  %windir%\system32\control.exe /name Microsoft.AdministrativeTools
+- Services
+  %WINDIR%\system32\svchost.exe -k LocalServiceAndNoImpersonation

@@ -1,0 +1,61 @@
+# REF: https://www.tooth-pick.xyz/2017/05/14/prometheus-grafana-easy-install/
+version: '3'
+
+prometheus:
+   image: prom/prometheus
+   container_name: prometheus
+   mem_limit: 256mb
+   restart: always
+   volumes:
+     - ./prometheus.yml:/etc/prometheus/prometheus.yml
+   expose:
+     - 9090
+   links:
+     - cadvisor
+     - node_exporter
+   environment:
+     VIRTUAL_HOST: prometheus.prometheus.example.com
+     LETSENCRYPT_HOST: prometheus.prometheus.example.com
+     LETSENCRYPT_EMAIL: hoge@example.com
+cadvisor:
+   image: google/cadvisor:latest
+   container_name: cadvisor
+   mem_limit: 128mb
+   restart: always
+   volumes:
+     - /:/rootfs:ro
+     - /var/run:/var/run:rw
+     - /sys:/sys:ro
+     - /var/lib/docker/:/var/lib/docker:ro
+   expose:
+     - 8080
+node_exporter:
+   image: prom/node-exporter
+   container_name: node_exporter
+   mem_limit: 128mb
+   restart: always
+   volumes:
+     - /proc:/host/proc:ro
+     - /sys:/host/sys:ro
+     - /:/rootfs:ro
+   expose:
+     - 9100
+grafana:
+   image: grafana/grafana
+   container_name: grafana
+   mem_limit: 256mb
+   restart: always
+   expose:
+     - 3000
+   links:
+     - prometheus
+     - cadvisor
+     - node_exporter
+   environment:
+     GF_SECURITY_ADMIN_USER: yourname
+     GF_SECURITY_ADMIN_PASSWORD: password
+     GF_USERS_ALLOW_SIGN_UP: "false"
+     GF_USERS_ALLOW_ORG_CREATE: "false"
+     VIRTUAL_HOST: prometheus.example.com
+     LETSENCRYPT_HOST: prometheus.example.com
+     LETSENCRYPT_EMAIL: hoge@example.com
