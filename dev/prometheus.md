@@ -1,4 +1,9 @@
 
+docker run -p 9090:9090 -v /tmp/prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus
+docker run -p 9090:9090 -v /prometheus-data prom/prometheus --config.file=/prometheus-data/prometheus.yml
+
+
+
 # Run on Docker
 ## Preparation
 Docker and docker-compose

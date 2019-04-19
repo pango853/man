@@ -1,5 +1,4 @@
 
-
 # MISC
 
 ## Measure temperature
@@ -63,3 +62,10 @@ If you decide to create a .REG file to add or edit Dos devices, add a second bac
 > FORFILES /P C:\Temp /D -30 /M *.txt /C "cmd /c echo @path 0x09 was changed 30 days ago"
 > FORFILES /P C:\Temp /D -30 /M *.txt /C "cmd /c del @path"
 
+
+## Flush Memory Cache
+
+> %windir%\system32\rundll32.exe advapi32.dll,ProcessIdleTasks
+
+## How does Run dialog locate executables?
+> HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths
