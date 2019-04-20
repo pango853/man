@@ -1,0 +1,17 @@
+
+
+每一个Prometheus Server实例包含一个/federate接口，用于获取一组指定的时间序列的监控数据。因此在中心Prometheus Server中只需要配置一个采集任务用于从其他Prometheus Server中获取监控数据。
+scrape_configs:
+  - job_name: 'federate'
+    scrape_interval: 15s
+    honor_labels: true
+    metrics_path: '/federate'
+    params:
+      'match[]':
+        - '{job="prometheus"}'
+        - '{__name__=~"job:.*"}'
+        - '{__name__=~"node.*"}'
+    static_configs:
+      - targets:
+        - '192.168.77.11:9090'
+        - '192.168.77.12:9090'

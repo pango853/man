@@ -1,0 +1,31 @@
+
+# Credential Manager
+
+## Usage
+
+> control /name Microsoft.CredentialManager
+
+> cmdkey /list
+
+
+
+# Case-Studies
+
+## Git
+
+> git config --global https.proxy http://DUMMY@127.0.0.1:8080
+
+*Hint: First just use a dummy name DUMMY here. Later we can set the real name in the Windows Credential Manager.*
+
+Add a generic credential as
+- Internet or network address: git:http://DUMMY@127.0.0.1:8080   
+  User name: <<<Real_USERNAME_Not_DUMMY>>>
+  Password: <<<YOUR_PASSWORD>>>
+
+BWT, this is not gonna work because it will directly by pass authentication.
+> git config --global http.proxy http://127.0.0.1:8080
+
+## IE proxy
+
+TODO...
+

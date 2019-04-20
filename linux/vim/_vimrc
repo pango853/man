@@ -12,11 +12,13 @@ set ai
 set pastetoggle=<F2>
 
 set backup
+set backupdir=/tmp
+set directory=.,/tmp
 
 if has("win32")
 	" Windows
-	set backupdir=%HOMEPATH%\_vim\bak
-	set directory=.,%HOMEPATH%\_vim\tmp
+	set backupdir=$HOME/_vim/bak,_vim/bak,.
+	set directory=$HOME/_vim/tmp,_vim/tmp,.
 else
   if has("unix")
     let s:uname = system("uname")
