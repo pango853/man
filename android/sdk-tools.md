@@ -44,5 +44,12 @@ e.g.
 > pm uninstall -k --user 0 com.nttdocomo.android.cloudset
 > pm uninstall -k --user 0 com.nttdocomo.android.idmanager
 > pm uninstall -k --user 0 com.nttdocomo.android.dmenu2
+> pm uninstall -k --user 0 com.nttdocomo.android.voiceeditor
 
 This method does not require root, will not prevent your device from receiving OTAs, and all applications can be restored with a factory reset.
+
+# AVD
+//export ANDROID_EMULATOR_DEBUG=1 test20
+SET ANDROID_EMULATOR_DEBUG=1 Nexus_5X_API_28_x86
+.\emulator\emulator64-x86 -list-avds
+.\emulator\emulator64-x86 -avd Nexus_5X_API_28_x86
