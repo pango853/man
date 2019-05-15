@@ -54,6 +54,7 @@ OpenShift Container Platform 3.10
 
 
 
+
 # Openshift Commands
 files:
 	~/.kube/config
@@ -66,13 +67,29 @@ services:
 	[node]   systemctl status docker
 
 install:
+	dig master.lab.example.com +short
+	dig node1.lab.example.com +short
+	dig XXXwildcarddomainTEST.cloudapps.lab.example.com +short
+
+	ssh-copy-id root@master
+	ssh-copy-id root@node1
+
 	atomic-openshift-excluder unexclude
+	vim /etc/sysconfig/docker-storage-setup
+	docker-storage-setup
 	atomic-openshift-installer -u -c /root/custom-installer.cfg.yml install
 
 	systemctl status atomic-openshift-master
 	oc set image --source=docker dc/registry-console registry-console=workstation.lab.example.com:5000.openshift3/registry-console:3.5
 
 	oc login -u developer -p password https://master.lab.example.com:8443	
+
+	cp -r /usr/share/openshift/examples/image-streams ~/openshift-examples
+	vim ~/openshift-examples/image-streams-rhel7.json
+		from: { kind: DockerImage, name: workstation.lab.example.com:5000/openshift3/ruby-20-rhel7.latest }, etc...
+	oc delete is -n openshift --all
+	oc create -f ~/openshift-examples/image-streams-rhel7.json -n openshift
+	oc describe is php -n openshift         # just for test
 
 project:
 	oc new-project myproject
@@ -158,6 +175,33 @@ metrics:
 
 	https://hawkular-metrics.<MASTER-wildcard-domain>
 
+	fgrep -r /usr/share/ansible/openshift-ansible install_metrics
+		./roles/openshift_metrics/defaults/main.yaml:openshift_metrics_install_metrics: True
+	less /usr/share/ansible/openshift-ansible/roles/openshift_metrics/README.md
+	less /usr/share/ansible/openshift-ansible/roles/openshift_metrics/defaults/main.yaml
+	Install:
+	docker-registry-cli workstation.lab.example.com:5000 search 
+	OPENSHIFT_ANSIBLE_INVENTORY=/usr/share/ansible/openshift-ansible/playbooks/
+	vim /root/hosts				# non-interactive
+		vim /etc/ansible/hosts
+		vim /root/.config/openshift/hosts	# interactive
+	//ansible-playbook -i /root/hosts ${OPENSHIFT_ANSIBLE_INVENTORY}byo/openshift-cluster/openshift-metrics.yml -e openshift_metrics_install_metrics=True
+	ansible-playbook -i /root/hosts ${OPENSHIFT_ANSIBLE_INVENTORY}byo/openshift-cluster/openshift-metrics.yml \
+		-e openshift_metrics_image_prefix=workstation.lab.example.com:5000/openshift3/ose- \
+		-e openshift_metrics_image_version=v3.5 \
+		-e openshift_metrics_heapster_requests_memory=300M \
+		-e openshift_metrics_hawkular_requests_memory=750M \
+		-e openshift_metrics_cassandra_requests_memory=750M \
+		-e openshift_metrics_cassandra_storage_type=pv \
+		-e openshift_metrics_cassandra_pvc_size=5Gi \
+		-e openshift_metrics_cassandra_pvc_prefix=metrics \
+		-e openshift_metrics_install_metrics=True
+	Uninstall:
+	ansible-playbook -i /root/hosts /user/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/openshift-metrics.yml -e openshift_metrics_install_metrics=False
+
+	oc get pods -n openshift-infra
+
+
 resourcequota:
 	oc create -f dev-quota.yml   # kind: ResourceQuota
 	OR
@@ -189,16 +233,74 @@ resourcequota:
 	oc get events | fgrep -i error
 	oc logs hello-###-deploy
 
+upgrade:
+	???????
+probe:
+	????????
+web:
+	
+
+
+
+/root/hosts:
+```
+[OSEv3:children]
+nodes
+nfs
+masters
+etcd
+
+[OSEv3:vars]
+openshift_master_cluster_public_hostname=None
+openshift_master_default_subdomain=cloudapps.mylab.private
+ansible_ssh_user=root
+openshift_master_cluster_hostname=None
+openshift_override_hostname_check=true
+deployment_type=openshift-enterprise
+
+[nodes:vars]
+openshift_docker_additional_registries=workstation.mylab.private:5000
+openshift_docker_blocked_registries={'registry.access.redhat.com': None, 'docker.io': None}
+openshift_docker_insecure_registries={'workstation.mylab.private:5000': None, '172.30.0.0/16': None}
+
+
+[masters:vars]
+openshift_docker_additional_registries=workstation.mylab.private:5000
+openshift_docker_blocked_registries={'registry.access.redhat.com': None, 'docker.io': None}
+openshift_docker_insecure_registries={'workstation.mylab.private:5000': None, '172.30.0.0/16': None}
+
+
+[nodes]
+master.mylab.private  openshift_public_ip=172.25.250.10 openshift_ip=172.25.250.10 openshift_public_hostname=master.mylab.private openshift_hostname=master.mylab.private connect_to=master.mylab.private openshift_schedulable=False ansible_connection=local
+node1.mylab.private  openshift_public_ip=172.25.250.11 openshift_ip=172.25.250.11 openshift_public_hostname=node1.mylab.private openshift_hostname=node1.mylab.private connect_to=node1.mylab.private openshift_node_labels="{'region': 'infra'}" openshift_schedulable=True
+node2.mylab.private  openshift_public_ip=172.25.250.12 openshift_ip=172.25.250.12 openshift_public_hostname=node2.mylab.private openshift_hostname=node2.mylab.private connect_to=node2.mylab.private openshift_node_labels="{'region': 'infra'}" openshift_schedulable=True
+
+[nfs]
+master.mylab.private  openshift_public_ip=172.25.250.10 openshift_ip=172.25.250.10 openshift_public_hostname=master.mylab.private openshift_hostname=master.mylab.private connect_to=master.mylab.private ansible_connection=local
+
+[masters]
+master.mylab.private  openshift_public_ip=172.25.250.10 openshift_ip=172.25.250.10 openshift_public_hostname=master.mylab.private openshift_hostname=master.mylab.private connect_to=master.mylab.private ansible_connection=local
+
+[etcd]
+master.mylab.private  openshift_public_ip=172.25.250.10 openshift_ip=172.25.250.10 openshift_public_hostname=master.mylab.private openshift_hostname=master.mylab.private connect_to=master.mylab.private ansible_connection=local
+```
 
 
 misc:
 	oc new-app -L
 	oc new-app http://workstation.lab.example.com/version
 	oc new-app --name=hello --docker-image=workstation.lab.example.com:5000/openshift/hello-openshift --insecure-registry
+	oc new-app --name=hello -i php:7.0 http://workstation.lab.example.com/php-helloworld
+	oc new-app --name=probes --docker-image=workstation.lab.example.com:5000/node-hello --insecure-registry
+	oc new-app centos/ruby-22-centos7~https://github.com/openshift/ruby-ex.git
+	docker-registry-cli workstation.lab.example.com:5000 search node-hello
+	oc new-app --name=load --docker-image=workstation.lab.example.com:5000/node-hello --insecure-registry
 
 	oc delete all -l app=hello
 
 	oc get svc docker-registry -n default
+
+	oc login -u system:admin   # on master
 
 	REGISTRYIP=$(oc get svc docker-registry -n default -o custom-columns='IP:{.spec.clusterIP}' --no-headers)
 	docker tag XXX_IMAGE_ID_XXX $REGISTRYIP:5000/schedule-is/phpmyadmin:4.7
@@ -209,3 +311,9 @@ misc:
 
 	$ watch -n 3 oc get builds
 	$ for i in {1..5}; do curl -s https://... | fgrep IP; done
+	$ ls -alZ /exports/metrics
+
+	oc expose svc/hello
+	yum install httpd-tools
+	ab -n 30000 -c 20 http://hello-myproject.cloudapps.lab.example.com/
+	oc adm top node --heapster-namespace=openshift-infra --heapster-scheme=https
