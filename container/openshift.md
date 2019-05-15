@@ -54,14 +54,35 @@ OpenShift Container Platform 3.10
 
 
 
-# Openshift Online
+# Openshift Commands
+files:
+	~/.kube/config
+	/etc/sysconfig/docker
+	/etc/sysconfig/atomic-openshift-master
+	/etc.bash_completion.d/oc
+	/etc/origin/master/scheduler.json
+services:
+	[master] systemctl status atomic-openshift-master
+	[node]   systemctl status docker
 
+install:
+	atomic-openshift-excluder unexclude
+	atomic-openshift-installer -u -c /root/custom-installer.cfg.yml install
+
+	systemctl status atomic-openshift-master
+	oc set image --source=docker dc/registry-console registry-console=workstation.lab.example.com:5000.openshift3/registry-console:3.5
+
+	oc login -u developer -p password https://master.lab.example.com:8443	
 
 project:
 	oc new-project myproject
 
 	oc get pods -o wide
 	oc expose svc NAME --hostname=NAME.cloudapps.lab.example.com
+
+debug:
+	oc logs -f bc/version
+
 
 
 rc/dc:
@@ -71,14 +92,120 @@ hpa (HorizaontalPodAutoscaler)
 	oc get hpa/frontend
 	oc describe hpa/frontend
 	
-	
-oc new-app -i php:7.0 https://github.com/sclorg/cakephp-ex.git -o yaml > .\new-app.yml
-vim new-app.yml
-	spec:
-		replicas: 3
-oc create -f .\new-app.yml
+
+	<examples>
+	oc new-app -i php:7.0 https://github.com/sclorg/cakephp-ex.git -o yaml > .\new-app.yml
+	vim new-app.yml
+		spec:
+			replicas: 3
+	oc create -f .\new-app.yml
+
+*scheduling*
+	oc label node node1 region=us-west zone=power1a --overwrite
+	oc get nodes node1.lab.example.com -L region
+	oc get node node1.lab.example.com -L region -L zone
+	oc get node node1.lab.example.com --show-labels
+
+	oc adm manage-node --schedulable=false node2.lab.example.com
+	oc adm drain node2.lab.example.com
+	oc adm manage-node --schedulable=true node2.lab.example.com
+
+	oc patch dc myapp --patch '{spec:{template:{nodeSelector:{env:qa}}}}'
+
+	oc label node nodeNEW region=infra
+	oc annotate --overwrite namespace default openshift.io/node-selector='region=infra'
+	oc project default
+	oc delete pod docker-registry-X-YYYYY
+
+	oc new-app --name=hello --docker-image=workstation.lab.example.com:5000/openshift/hello-openshift --insecure-registry
+	oc label node node2.lab.example.com region=my-japan-east --overwrite=true
+	oc get dc/hello -o yaml > dc-hello.yml
+	vim dc-hello.yml
+		spec:
+		  nodeSelector:
+		    region: my-japan-east
+	oc apply -f dc-hello.yml
+
+is:
+	oc tag ruby:latest ruby:2.0
+	oc tag -d ruby:latest
+
+	oc tag --alias=true <source> <destination>
+	oc tag --scheduled=true <source> <destination>
+
+	oc tag --reference-policy=local <source> <destination>
+
+	oc export is phpmyadmin > is.yaml
+	oc replace -f is.yaml
+
+
+template:
+	oc get templates -n openshift
+	oc export templates XXXXX -n openshift > XXXXX.yml
+	oc export po/registry-console-2-b2n1l --as-template='MyTemplate' > YYYYY.yml
+	oc create -f XXXX.yml
+	oc create -f XXXX.yml -l name=mylabel
+
+metrics:
+	APIPROXY=${MASTERURL}/api/v1/proxy/namespaces/openshift-infra/services
+	HEAPSTERAPI=https:heapster:/api/v1/model
+	TOKEN=$(oc whoami -t)
+	curl -k -H "Authorization: Bearer $TOKEN" -X GET $APIPROXY/$HEAPSTER/$NODE/metrics/memory/working_set?start=$START
+
+	oc get pods -n openshift-infra
+
+	docker-registry-cli workstation.lab.example.com:5000 search metrics
+
+	https://hawkular-metrics.<MASTER-wildcard-domain>
+
+resourcequota:
+	oc create -f dev-quota.yml   # kind: ResourceQuota
+	OR
+	oc create quota dev-quota --hard=services=10 --hard=cpu=1300m --hard=memory=1.5Gi
+	oc get resourcequota
+	oc describe resourcequota dev-quota
+	oc describe quota
+	oc delete resourcequota dev-quota
+
+	oc create -f dev-limits.yml
+	// kind: LimitRange > spec: > limit > type: Pod/Container, max/min/default: cpu: 2/200m/1, memory: 1Gi/6Mi/512Mi
+	oc get limitranges
+	oc describe limitranges dev-limits
+	oc describe limits
+	oc delete limitranges dev-limits
+
+	oc create clusterquota user-qa --project-annotation-selector openshift.io/requester=qa --hard pods=12 --hard secrets=20
+	oc create clusterquota env-qa --project-label-selector environment=qa --hard pods=10 --hard services=5
+	oc delete clusterquota user-qa
+
+	oc set resources dc/hello --requests=memory=256Mi
+	oc set resources dc/hello --requests=memory=8Gi
+
+
+	*troubleshooting*
+	oc describe node node1.lab.example.com | fgrep -A4 Allocated
+	oc describe pod hello-1-bnkdf | fgrep -A 2 Requests
+	oc describe dc hello | fgrep Replicas:
+	oc get events | fgrep -i error
+	oc logs hello-###-deploy
+
 
 
 misc:
+	oc new-app -L
+	oc new-app http://workstation.lab.example.com/version
+	oc new-app --name=hello --docker-image=workstation.lab.example.com:5000/openshift/hello-openshift --insecure-registry
+
+	oc delete all -l app=hello
+
+	oc get svc docker-registry -n default
+
+	REGISTRYIP=$(oc get svc docker-registry -n default -o custom-columns='IP:{.spec.clusterIP}' --no-headers)
+	docker tag XXX_IMAGE_ID_XXX $REGISTRYIP:5000/schedule-is/phpmyadmin:4.7
+	docker load -i phpmyadmin-latest.tar
+	TOKEN=$(oc whoami -t)
+	docker login -u admin -p $TOKEN $REGISTRYIP:5000
+	docker push $REGISTRYIP:5000/schedule-is/phpmyadmin:4.7
+
 	$ watch -n 3 oc get builds
 	$ for i in {1..5}; do curl -s https://... | fgrep IP; done
