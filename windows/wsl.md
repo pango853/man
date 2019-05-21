@@ -31,3 +31,12 @@ REF: https://docs.microsoft.com/en-us/windows/wsl/troubleshooting#check-your-bui
 
 > $userenv = [System.Environment]::GetEnvironmentVariable("Path", "User")
 > [System.Environment]::SetEnvironmentVariable("PATH", $userenv + "C:\Users\Administrator\Ubuntu", "User")
+
+
+# RoliSoft/WSL-Distribution-Switcher
+
+Scripts to replace the distribution behind Windows Subsystem for Linux with any other Linux.
+
+REF: https://github.com/RoliSoft/WSL-Distribution-Switcher
+
+TODO ...
