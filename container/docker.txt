@@ -1,0 +1,909 @@
+###. My MEMO
+cd E:\TEMP\Docker
+$env:path += ";D:\DEV\Docker"
+Start-Service Docker
+docker start test1
+docker attach test1
+
+
+
+###. Docker for Windows
+
+
+https://docs.docker.com/docker-for-windows/
+
+https://store.docker.com/editions/community/docker-ce-desktop-windows
+	https://download.docker.com/win/stable/InstallDocker.msi
+	OR
+	https://download.docker.com/win/edge/InstallDocker.msi
+Check the latest build first
+https://get.docker.com/builds/
+
+ps> Enable-WindowsOptionalFeature -Online -FeatureName containers -All
+ps> Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
+ps> Restart-Computer -Force
+
+ps> Invoke-WebRequest "https://get.docker.com/builds/Windows/x86_64/docker-17.05.0-ce.zip" -OutFile "$env:TEMP\docker.zip" -UseBasicParsing
+ps> Expand-Archive -Path "$env:TEMP\docker.zip" -DestinationPath $env:ProgramFiles
+
+# Add path to this PowerShell session immediately
+ps> $env:path += ";$env:ProgramFiles\Docker"
+
+# For persistent use after a reboot
+ps> $existingMachinePath = [Environment]::GetEnvironmentVariable("Path",[System.EnvironmentVariableTarget]::Machine)
+ps> [Environment]::SetEnvironmentVariable("Path", $existingMachinePath + ";$env:ProgramFiles\Docker", [EnvironmentVariableTarget]::Machine)
+
+ps> dockerd --register-service
+
+ps> Start-Service Docker
+
+
+> docker version
+
+!You get unknown blob if your using linux container.
+ In windows 10, click the docker icon in your tray and click "Switch to Windows containers..."
+> docker version
+
+
+ps> docker pull microsoft/nanoserver
+ps> docker images
+
+ps> docker run -it microsoft/nanoserver cmd
+
+ps> powershell.exe Add-Content C:\helloworld.ps1 'Write-Host "Hello World"'
+
+ps> docker ps -a
+docker commit <containerid> helloworld
+docker run --rm helloworld powershell c:\helloworld.ps1
+
+
+> docker pull microsoft/windowsservercore
+docker run microsoft/windowsservercore hostname
+
+
+https://docs.microsoft.com/sv-se/virtualization/windowscontainers/quick-start/quick-start-windows-10
+
+
+
+#. TUTORIAL-1: Install Python
+
+> docker run -it --name test1 microsoft/windowsservercore powershell
+Ctrl-P & Q
+> docker stop test1    # Stop first otherwise cannot cp on Windows
+// Download and install Python on host or another Windows and archive the whole directory as a zip file.
+> docker cp Python36.zip test1:C:\Python36.zip
+> docker start test1
+> docker attach test1
+> Expand-Archive -Path Python36.zip -DestinationPath Python36
+> $env:Path += ";C:\Python36;C:\Python36\Scripts"
+> [Environment]::SetEnvironmentVariable("Path", "$env:Path;C:\Python36;C:\Python36\Scripts")
+> pip --version
+Fatal error in launcher: Unable to create process using '"' // But I got this!!! So I tried the next:
+> python -m pip list
+DEPRECATION: The default format will switch to columns in the future. You can use --format=(legacy|columns) (or define a format=(legacy|columns) in your pip.conf under the [list] section) to disable this warning.
+pip (9.0.1)
+setuptools (28.8.0)
+virtualenv (15.1.0)
+> python -m pip install -U pip --force
+> pip --version
+pip 9.0.1 from c:\python36\lib\site-packages (python 3.6)
+// Now it is OK
+> python -m pip install virtualenv
+> del C:\Python36.zip
+
+
+#. TUTORIAL-2: Manually install everything with mapped folder
+
+> mkdir E:\TEMP\Docker\shared_folder
+Download and place the following.
+ - Python: Python36.zip
+   Zip as Python36.zip
+ - Java: jdk-8u131-windows-x64.exe
+   Download JDK from oracle.com
+ - Eclipse: eclipse-rcp-neon-3-win32-x86_64.zip
+ - Git: PortableGit.zip
+   https://github.com/git-for-windows/git/releases/download/v2.13.0.windows.1/PortableGit-2.13.0-64-bit.7z.exe
+   Install and repack as PortableGit.zip
+ - Jenkins: jenkins.war
+   http://mirrors.jenkins.io/war-stable/latest/jenkins.war
+
+> docker run -it -v E:\TEMP\Docker\shared_folder:C:\Shared --name tutorial2 --network myTransparent1 microsoft/windowsservercore powershell
+
+> Expand-Archive -Path C:\Shared\Python36.zip -DestinationPath C:\
+> $env:Path += ";C:\Python36;C:\Python36\Scripts"
+> [Environment]::SetEnvironmentVariable("Path", $env:Path, [System.EnvironmentVariableTarget]::Machine)
+> python --version
+> pip --version
+# Fatal error in launcher: Unable to create process using '"'
+> python -m pip install -U pip --force
+> pip --version
+# Now pip should be ready
+> python -m pip install virtualenv
+> python -m pip list
+
+# Install jdk silently and waiting
+> $proc1 = Start-Process -FilePath "C:\Shared\jdk-8u131-windows-x64.exe" -ArgumentList "/s /LOG C:\install-jdk.log ADDLOCAL=ToolsFeature,SourceFeature INSTALLDIR=C:\jdk8 REBOOT=ReallySuppress" -Wait -PassThru
+# OR jdk-8u131-windows-x64.exe /passive /LOG C:\install-jdk.log ADDLOCAL="ToolsFeature,SourceFeature,PublicjreFeature" INSTALLDIR=C:\jdk8u131 INSTALLDIRPUBJRE=C:\jre8u131
+> $proc1.waitForExit()
+> Get-Content install-jdk.log
+> Write-Host 'JDK Installation Done.'
+
+> $env:Path += ";C:\jdk8\bin"
+> [Environment]::SetEnvironmentVariable("Path", $env:Path, [System.EnvironmentVariableTarget]::Machine)
+> [Environment]::SetEnvironmentVariable("JAVA_HOME", "C:\jdk8", [System.EnvironmentVariableTarget]::Machine)
+> java -version
+
+
+> Expand-Archive -Path C:\Shared\eclipse-rcp-neon-3-win32-x86_64.zip -DestinationPath C:\
+
+
+> Expand-Archive -Path C:\Shared\PortableGit.zip -DestinationPath C:\
+> $env:Path += ";C:\PortableGit\bin"
+> [Environment]::SetEnvironmentVariable("Path", $env:Path, [System.EnvironmentVariableTarget]::Machine)
+> git --version
+
+> mkdir C:\jenkins
+> copy C:\Shared\jenkins.war C:\jenkins\
+# OR Invoke-WebRequest "http://mirrors.jenkins.io/war-stable/latest/jenkins.war" -OutFile "C:\jenkins\jenkins.war" -UseBasicParsing
+
+> cd C:\jenkins
+> ipconfig
+> java -jar jenkins.war
+# --httpPort=-1 --httpsPort=443 --httpsKeyStore=path/to/keystore --httpsKeyStorePassword=keystorePassword
+
+# Now you have everything ready!
+
+
+#. TUTORIAL-3: Build a git repo server
+
+> mkdir E:\TEMP\Docker\shared_folder
+Download and place the following.
+ - Git: PortableGit.zip
+   https://github.com/git-for-windows/git/releases/download/v2.13.0.windows.1/PortableGit-2.13.0-64-bit.7z.exe
+   Install and repack as PortableGit.zip
+
+> docker run -it -v E:\TEMP\Docker\shared_folder:C:\Shared --name tutorial3 --network myTransparent1 microsoft/windowsservercore powershell
+
+> Expand-Archive -Path C:\Shared\PortableGit.zip -DestinationPath C:\
+> $env:Path += ";C:\PortableGit\bin"
+> [Environment]::SetEnvironmentVariable("Path", $env:Path, [System.EnvironmentVariableTarget]::Machine)
+> git --version
+
+> mkdir C:\repos
+> cd C:\repos
+
+> mkdir project1.git
+> cd project1.git
+> git init --bare --shared=true
+> Set-Content git-daemon-export-ok ""
+> git config core.autoCRLF false
+> git config core.sharedRepository group
+# chmod -R g+ws hooks info objects refs
+
+> cd C:\repos
+> git daemon --export-all --base-path=C:\repos --enable=receive-pack --reuseaddr --informative-errors --verbose
+# --export-all --reuseaddr --informative-errors --verbose
+
+
+# Ctrl-P Ctrl-Q
+
+docker exec tutorial3 "netstat -nat"
+
+// Git port:9418
+docker exec -d -p 9418:9418
+
+# git clone git://192.168.86.206/project1.git
+
+# If "unable to set SO_KEEPALIVE on socket: No such file or directory" problem occurred during cloning or pushing, run the following on client side
+#> git config sendpack.sideband false
+
+
+#. TUTORIAL-4: Build with Dockerfile
+
+> cd .\images\win-git-repo
+> type Dockerfile
+	...
+	# REF: Should take a look here: https://github.com/docker-library/golang/blob/master/1.8/windows/windowsservercore/Dockerfile#L31
+> docker build -t win-git-repo .
+
+> docker run --name tutorial4 -d -p 9418:9418 win-git-repo
+OR
+> docker run --name tutorial4 -d --network myTransparent1 win-git-repo
+> docker exec tutorial4 ipconfig
+
+
+
+
+
+
+
+
+
+
+###. Trouble-shooting
+
+No DNS
+DOCKER_OPTS="--dns 8.8.8.8 --dns 8.8.4.4 -g /home/bitcore/docker-data"
+
+
+<https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-containers/container-networking>
+docker network ls
+Get-VMSwitch
+Get-NetCompartment
+Get-NetAdapter
+
+docker network create -d transparent -o com.docker.network.windowsshim.interface="Wi-Fi" myTransparent1
+
+docker network create -d <NETWORK DRIVER TYPE> <NAME>
+
+Get-NetNAT
+
+
+docker network inspect nat
+No internet: Open Hyper-V Manager > Virtual Switch Manager > Change Connection type of nat to External network
+docker run -it --name test1 microsoft/windowsservercore powershell
+PS> Get-ContainerNetwork
+
+docker network disconnect nat <containerID>
+docker network connect none <containerID>
+
+
+docker network create --driver bridge isolated_nw
+docker network create --driver overlay --subnet 10.0.9.0/24 my-multi-host-network
+docker network create --driver weave mynet
+
+docker network create --driver nat --subnet 172.18.0.0/20 nat2
+	--opt com.docker.network.windowsshim.hnsid=1c35c1a9-938c-411e-a304-60feb94c8716
+	--opt com.docker.network.windowsshim.networkname=nat
+
+Error response from daemon: HNS failed with error : The object already exists.
+
+
+
+C:\ProgramData\Docker\Containers\<containerID>
+	The config.v2.json file has all the configuration details for this container
+
+
+
+
+sudo docker start --net=host -it --name ex_ngninx ubuntu
+
+
+
+
+
+
+
+
+> docker exec -it test1 cmd
+
+
+
+// It will go to C:\ProgramData\docker\volumes\shared_folder if not absolute path
+
+
+
+
+
+
+
+#. TUTORIAL-X SQL Server
+
+docker run -d -p 1433:1433 -e sa_password=<SA_PASSWORD> -e ACCEPT_EULA=Y microsoft/mssql-server-windows-express
+docker run -d -p 1433:1433 -e sa_password=P@ssw0rd -e ACCEPT_EULA=Y -v E:\TEMP\Docker\sql_server:C:\db -e attach_dbs="[{'dbName':'SampleDB1','dbFiles':['C:\\db\\sampledb.mdf','C:\\db\\sampledb_log.ldf']}]" --name sqlserver microsoft/mssql-server-windows-express
+
+docker exec sqlserver sqlcmd -q "SELECT name FROM master.dbo.sysdatabases"
+docker exec sqlserver sqlcmd -q "EXEC sp_databases"
+
+
+docker exec -it sqlserver sqlcmd
+ > CREATE DATABASE SampleDB1;
+ > GO
+ > CREATE LOGIN user1 WITH PASSWORD = 'Password1', DEFAULT_DATABASE = SampleDB1, CHECK_EXPIRATION = OFF, CHECK_POLICY = OFF;
+ > GO
+ > USE SampleDB1;
+ > GO
+ > CREATE USER user1 FROM LOGIN user1 WITH DEFAULT_SCHEMA = setting;
+ > GO
+ > CREATE SCHEMA setting AUTHORIZATION user1;
+ > GO
+	CREATE ROLE role1 AUTHORIZATION dbo;
+	GO
+	GRANT ALTER ON SCHEMA::setting TO role1
+	GO
+	GRANT CONTROL ON SCHEMA::setting TO role1
+	GO
+	GRANT SELECT ON SCHEMA::setting TO role1
+	GO
+	GRANT DELETE ON SCHEMA::dbo TO role1
+	GO
+	GRANT INSERT ON SCHEMA::dbo TO role1
+	GO
+	GRANT SELECT ON SCHEMA::dbo TO role1
+	GO
+	GRANT UPDATE ON SCHEMA::dbo TO role1
+	GO
+	GRANT REFERENCES ON SCHEMA::dbo TO role1
+	GO
+	EXEC sp_addrolemember N'role1 ', N'user1'
+	GO
+	GRANT CREATE TABLE TO role1
+	GO
+	GRANT CONNECT TO user1
+	GO
+
+docker exec -it sqlserver sqlcmd -d SampleDB1 -U user1 -P Password1
+
+sqlcmd -S 172.17.10.101,1433 -U user1 -P Password1 -d SampleDB1
+
+
+
+
+select * from sys.databases
+SELECT * FROM sys.database_principals
+SELECT * FROM sys.server_principals
+sp_who
+sp_who 'active'
+sp_who 'login-name'
+
+
+
+CREATE DATABASE SampleDB1;
+CREATE LOGIN login1 WITH PASSWORD = 'Password1', DEFAULT_DATABASE = SampleDB1, CHECK_EXPIRATION = OFF, CHECK_POLICY = OFF;
+USE SampleDB1; CREATE USER user1 FROM LOGIN login1 WITH DEFAULT_SCHEMA = setting;
+CREATE SCHEMA setting AUTHORIZATION user1;
+
+GRANT ALL ON *.* TO user1;
+
+docker exec 9158c9d870d6 sqlcmd -d SampleDB1 -U user1 -P Password1 -Q "SELECT 1;"
+
+>sqlcmd -S 172.17.7.88,1433 -U user1 -P Password1 -d SampleDB1
+
+
+
+
+--create a test database
+CREATE DATABASE [SecurityTest]
+GO
+USE SecurityTest
+GO
+CREATE TABLE [dbo].[table1](
+       [pkcol] [int] IDENTITY(1,1) NOT NULL,
+       [col1] [int] NULL,
+PRIMARY KEY CLUSTERED ([pkcol])
+)
+GO
+--create test user login
+CREATE LOGIN [User1] WITH PASSWORD=N'p@55w0rd'
+GO
+--create user in test database
+CREATE USER [User1] FOR LOGIN [User1] WITH DEFAULT_SCHEMA=[Developer_Schema]
+GO
+--create role
+CREATE ROLE [Developer_Role] AUTHORIZATION [dbo]
+GO
+--create schema
+CREATE SCHEMA [Developer_Schema] AUTHORIZATION [User1]
+GO
+--apply permissions to schemas
+GRANT ALTER ON SCHEMA::[Developer_Schema] TO [Developer_Role]
+GO
+GRANT CONTROL ON SCHEMA::[Developer_Schema] TO [Developer_Role]
+GO
+GRANT SELECT ON SCHEMA::[Developer_Schema] TO [Developer_Role]
+GO
+GRANT DELETE ON SCHEMA::[dbo] TO [Developer_Role]
+GO
+GRANT INSERT ON SCHEMA::[dbo] TO [Developer_Role]
+GO
+GRANT SELECT ON SCHEMA::[dbo] TO [Developer_Role]
+GO
+GRANT UPDATE ON SCHEMA::[dbo] TO [Developer_Role]
+GO
+GRANT REFERENCES ON SCHEMA::[dbo] TO [Developer_Role]
+GO
+--ensure role membership is correct
+EXEC sp_addrolemember N'Developer_Role ', N'User1'
+GO
+--allow users to create tables in Developer_Schema
+GRANT CREATE TABLE TO [Developer_Role]
+GO
+--Allow user to connect to database
+GRANT CONNECT TO [User1]
+
+
+
+create user foobar from login foobar;
+create table test(rowid int identity)
+grant execute on dbo.truncate_test to foobar
+use test; GRANT CREATE ANY DATABASE to TestUser
+SELECT 'GRANT SELECT ON "' + TABLE_SCHEMA + '"."' + TABLE_NAME + '" TO "chartio_read_only"' FROM information_schema.tables
+GRANT SELECT ON "dbo"."Customer" TO "chartio_read_only"
+
+exec sp_addrolemember @rolename='ddl_admin', @membername='MyTempLogin'
+exec sp_addsrvrolemember @loginame='MyTempLogin', @rolename='bulkadmin'
+
+
+
+
+
+
+
+
+
+
+mkdir src
+mkdir src\oata
+Add-Content src\oata\HelloWorld.java "package oata;`n`npublic class HelloWorld {`n    public static void main(String[] args) {`n        System.out.println(""Hello World"");`n    }`n}`n"
+javac -sourcepath src -d build\classes src\oata\HelloWorld.java
+java -cp build\classes oata.HelloWorld
+
+mkdir META-INF
+Set-Content META-INF/MANIFEST.MF "Main-Class: oata.HelloWorld"
+
+jar -cvfm test.jar META-INF/MANIFEST.MF -C build\classes oata\HelloWorld.class
+java -jar test.jar
+
+
+
+
+<project>
+    <target name="clean">
+        <delete dir="build"/>
+    </target>
+
+    <target name="compile">
+        <mkdir dir="build/classes"/>
+        <javac srcdir="src" destdir="build/classes"/>
+    </target>
+
+    <target name="jar">
+        <mkdir dir="build/jar"/>
+        <jar destfile="build/jar/HelloWorld.jar" basedir="build/classes">
+            <manifest>
+                <attribute name="Main-Class" value="oata.HelloWorld"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="run">
+        <java jar="build/jar/HelloWorld.jar" fork="true"/>
+    </target>
+</project>
+
+
+ant compile jar run
+
+
+
+
+
+
+
+PS C:\Workspace\Project1> jar -cvfm build\jar\HelloWorld.jar myManifest -C .\build\classes .
+java.io.IOException: invalid header field
+        at java.util.jar.Attributes.read(Attributes.java:410)
+        at java.util.jar.Manifest.read(Manifest.java:199)
+        at java.util.jar.Manifest.<init>(Manifest.java:69)
+        at sun.tools.jar.Main.run(Main.java:176)
+        at sun.tools.jar.Main.main(Main.java:1288)
+
+
+
+java -jar C:\eclipse\plugins\org.eclipse.equinox.launcher.source_1.3.201.v20161025-1711.jar -application org.eclipse.ant.core.antRunner -buildfile build.xml
+
+
+
+// https://wiki.eclipse.org/PDE/User_Guide
+java -jar C:\eclipse\plugins\org.eclipse.equinox.launcher.source_1.3.201.v20161025-1711.jar `
+ -application org.eclipse.ant.core.antRunner `
+ -buildfile C:\eclipse\plugins\org.eclipse.pde.build_3.9.200.v20160204-0642\scripts\productBuild\productBuild.xml `
+ -Dbuilder=path to the build configuration folder
+
+
+
+
+
+
+	$client.DownloadFile("http://download.oracle.com/otn-pub/java/jdk/7u45-b18/jdk-7u45-windows-x64.exe", "C:\\Users\\Administrator\\jdk.exe")
+# /langは言語コード、 /sでサイレントモードで実行
+C:\Users\Administrator\jdk.exe /s /lang=1041 INSTALLDIR=C:\java\jdk1.7.45
+# PATHに設定
+$env:PATH = $env:PATH + \";C:\\java\\jdk1.7.45\\bin\",
+
+
+
+
+
+-> Failed!!! python couldnt even be start!
+
+
+Error response from daemon: hcsshim::ActivateLayer failed in Win32:
+
+
+
+https://github.com/StefanScherer/dockerfiles-windows/pull/61/files
+
+
+
+https://wiki.eclipse.org/PDE/User_Guide
+
+
+
+	PS> Invoke-WebRequest "https://www.python.org/ftp/python/3.6.1/python-3.6.1-embed-amd64.zip" -OutFile "$env:TEMP\temp.zip" -UseBasicParsing
+	PS> Expand-Archive -Path "$env:TEMP\temp.zip" -DestinationPath C:\Python36
+	PS> [Environment]::SetEnvironmentVariable("Path", "$env:Path;C:\Python36\;C:\Python36\Scripts\")
+	PS> Invoke-WebRequest "https://bootstrap.pypa.io/get-pip.py" -OutFile "get-pip.py" -UseBasicParsing
+	PS> python get-pip.py
+-> Failed!!!
+
+
+	PS> Invoke-WebRequest "https://bootstrap.pypa.io/ez_setup.py" -OutFile "ez_setup.py" -UseBasicParsing
+
+Set-ExecutionPolicy Unrestricted
+
+
+subprocess.CalledProcessError: Command '['powershell', '-Command', '
+[System.Net.WebRequest]::DefaultWebProxy.Credentials = [System.Net.CredentialCache]::DefaultCredentials;
+(new-object System.Net.WebClient).DownloadFile("https://pypi.io/packages/source/s/setuptools/setuptools-33.1.1.zip", "C:\\Temp\\setuptools-33.1.1.zip")'
+
+
+
+$notwget = New-Object System.Net.WebClient
+
+# We'll download and install
+# - the Python 2.7 64-bit msi
+# - ez_setup.py
+# - get-pip.py
+
+# Download and install Python 2.7
+$notwget.DownloadFile("http://www.python.org/ftp/python/2.7.6/python-2.7.6.amd64.msi", "$pwd\python-2.7.6.amd64.msi")
+# Run the installer in non-interactive installation mode
+& msiexec /i .\python-2.7.6.amd64.msi ALLUSERS=1
+
+# Install the latest and greatest version of Setuptools
+$notwget.DownloadFile("https://bitbucket.org/pypa/setuptools/raw/bootstrap/ez_setup.py", "$pwd\ez_setup.py")
+# Rather than muck with PATH and PYTHONPATH, simply did these installs directly
+& "C:\Python27\python.exe" .\ez_setup.py
+
+# Get pip!
+$notwget.DownloadFile("https://raw.github.com/pypa/pip/master/contrib/get-pip.py", "$pwd\get-pip.py")
+& "C:\Python27\python.exe" .\get-pip.py
+
+# Because of an upstream issue in pbr, we install an old version of pbr first.
+& "C:\Python27\Scripts\pip.exe" install pbr==0.5.21
+# Now can install pyrax
+& "C:\Python27\Scripts\pip.exe" install pyrax
+
+
+
+
+Invoke-WebRequest $('https://www.python.org/ftp/python/{0}/python-{0}-embed-amd64.zip' -f $env:PYTHON_VERSION) -OutFile 'python.zip' -UseBasicParsing;
+Expand-Archive python.zip -DestinationPath C:\python ;
+$env:PATH = 'C:\python;C:\python\Scripts;{0}' -f $env:PATH ;
+Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\' -Name Path -Value $env:PATH ;
+Remove-Item -Path python.zip ;
+mkdir $env:APPDATA\Python\Python36\site-packages ;
+Invoke-WebRequest 'https://bootstrap.pypa.io/get-pip.py' -OutFile 'get-pip.py' -UseBasicParsing ;
+$replace = ('import tempfile{0}import site{0}site.getusersitepackages()' -f [char][int]10) ;
+Get-Content get-pip.py | Foreach-Object { $_ -replace 'import tempfile', $replace } | Out-File -Encoding Ascii my-get-pip.py;
+$pipInstall = ('pip=={0}' -f $env:PYTHON_PIP_VERSION) ;
+python getpip.py $pipInstall ;
+Remove-Item get-pip.py ;
+Remove-Item getpip.py
+ ---> Running in 4cada9ec5cd1
+    Directory: C:\Users\ContainerAdministrator\AppData\Roamin
+
+
+
+new-object : Cannot find type [System.Net.WebClient]: verify that the assembly containing this type is loaded.
+At line:1 char:2
++ (new-object System.Net.WebClient).DownloadFile("https://pypi.io/packa ...
++  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : InvalidType: (:) [New-Object], PSArgumentException
+    + FullyQualifiedErrorId : TypeNotFound,Microsoft.PowerShell.Commands.NewObjectCommand
+
+
+
+
+(new-object System.Net.WebClient).DownloadFile('https://bootstrap.pypa.io/ez_setup.py', 'ez_setup.py')
+
+
+  File "C:\Users\ContainerAdministrator\AppData\Local\Temp\tmpqdv9smi4\pip.zip\pip\locations.py", line 88, in <module>
+  File "ntpath.py", line 75, in join
+TypeError: expected str, bytes or os.PathLike object, not NoneType
+
+
+
+	import os
+	os._exit(0)
+
+
+
+
+
+
+
+msiexec.exe /I .\SQLIO.msi /quiet 
+
+
+
+
+
+https://bootstrap.pypa.io/ez_setup.py
+https://raw.github.com/pypa/pip/master/contrib/get-pip.py
+
+This is also an option duri
+
+
+#. TUTORIAL-2: Remote PowerShell
+
+> docker run -it microsoft/nanoserver powershell
+	Test
+	> Add-Content .\helloworld.ps1 'Write-Host "Hello World"'
+	> .\helloworld.ps1
+	Ctrl-p Ctrl-q to detach
+> docker ps -a
+> docker attach 66ab6bbcd390
+	Ctrl-p Ctrl-q to detach
+> docker stop 66ab6bbcd390
+> docker rm 66ab6bbcd390
+
+> docker run -it --name test1 microsoft/nanoserver powershell
+	Ctrl-p Ctrl-q to detach
+> docker attach test1
+	MAIN
+	> ipconfig
+	> Set-WSManQuickConfig
+	> net user Administrator <CHANGE-PASSWORD>
+	> Set-Item wsman:\localhost\client\trustedhosts *
+	> Restart-Service WinRM
+
+
+Set-Item WSMan:\localhost\Client\TrustedHosts -Value "servername or IP, servername or IP"
+OR
+Set-Item WSMan:\localhost\Client\TrustedHosts -Value "*"
+
+Now you can start a session with your Nano Server. From you administrator PS console, type:
+Enter-PSSession -ComputerName "servername or IP" -Credential servername\Administrator
+
+Enter-PSSession -VMName "VMName" -Credential servername\Administrator
+	
+Enter-PSSession -VMName "VMName" -Credential servername\Administrator
+
+
+
+
+PS2> Enter-PSSession 172.17.6.64 -Credential administrator
+
+
+
+
+> Test-WsMan COMPUTER
+> Invoke-Command -ComputerName COMPUTER -ScriptBlock { COMMAND } -credential USERNAME
+
+> Enter-PSSession -ComputerName COMPUTER -Credential USER
+
+https://blog.docker.com/2016/09/dockerforws2016/
+https://blog.sixeyed.com/windows-containers-and-docker-5-things-you-need-to-know/
+https://docs.microsoft.com/ja-jp/virtualization/windowscontainers/deploy-containers/deploy-containers-on-nano
+
+
+
+
+
+#. Enable RDP from CMD - Failed!!!
+> reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
+To enable Remote assistance:
+> reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fAllowToGetHelp /t REG_DWORD /d 1 /f
+
+
+http://www.hacking-tutorial.com/tips-and-trick/how-to-enable-remote-desktop-using-command-prompt/#sthash.BSGO3AHd.dpbs
+
+
+> reg add "hklm\system\currentControlSet\Control\Terminal Server" /v "AllowTSConnections" /t REG_DWORD /d 0x1 /f
+> reg add "hklm\system\currentControlSet\Control\Terminal Server" /v "fDenyTSConnections" /t REG_DWORD /d 0x0 /f
+
+ps> docker restart df8f54bd85a3
+ps> docker attach df8f54bd85a3
+
+> sc config TermService start= auto
+> net start Termservice
+
+C:\>net start Termservice
+The service name is invalid.
+
+More help is available by typing NET HELPMSG 2185.
+
+
+> netsh.exe
+	firewall
+	add portopening TCP 3389 "Remote Desktop"
+	 - See more at: http://www.hacking-tutorial.com/tips-and-trick/how-to-enable-remote-desktop-using-command-prompt/#sthash.BSGO3AHd.dpuf
+
+
+
+###. Others
+ps> Get-Command -Module Containers
+
+
+Dockerコマンドメモ - Qiita http://qiita.com/curseoff/items/a9e64ad01d673abb6866
+
+
+
+
+###. Docker for Ubuntu
+
+$ sudo apt-get openssh-server
+$ sudo apt-get install libltdl7
+
+// Entire disk as LVM
+# ls /sys/class/scsi_host/
+# echo "- - -" > /sys/class/scsi_host/host0/scan
+# echo "- - -" > /sys/class/scsi_host/host1/scan
+# echo "- - -" > /sys/class/scsi_host/host2/scan
+# ls /sys/class/scsi_device/
+# echo 1 > /sys/class/scsi_device/0\:0\:0\:0/device/rescan
+# echo 1 > /sys/class/scsi_device/2\:0\:0\:0/device/rescan
+$ sudo fdisk -l
+
+$ sudo fdisk /dev/sdb
+# partprobe
+
+# mkfs.ext4 /dev/sdb1
+# e2fsck -pf /dev/sdb1
+
+# mkdir /mnt/docker
+# mount /dev/sdb1 /mnt/docker
+# vim /etc/fstab
+/dev/sdb1 /mnt/docker    ext4    defaults    0    1
+
+
+// Expand vhd size
+# umount /mnt/docker
+# fdisk /dev/sdb
+	m
+	p
+	d
+	1
+	n
+	p
+	w
+# e2fsck -f /dev/sdb1
+# resize2fs /dev/sdb1
+# mount /dev/sdb1 /mnt/docker
+
+
+$ sudo apt-get install \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    software-properties-common
+$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+$ sudo apt-key fingerprint 0EBFCD88
+OR
+$ wget https://download.docker.com/linux/ubuntu/dists/zesty/pool/edge/amd64/docker-ce_17.05.0~ce-0~ubuntu-zesty_amd64.deb
+$ sudo dpkg -i docker-ce_*_amd64.deb
+
+$ sudo vim /etc/docker/daemon.json
+	{"graph":"/mnt/docker"}
+$ sudo systemctl restart docker.service
+$ sudo docker info
+//$ sudo rm -rf /var/lib/docker
+
+$ sudo groupadd docker
+$ sudo usermod -aG docker $USER
+$ sudo chgrusermod -aG docker $USER
+// Restart terminal
+
+$ docker pull centos
+$ docker run --name test1 -it centos bash
+
+
+
+#. Expand disk size(2) expand vhd
+Have to use LVM
+
+#. Expand disk size(2) dump to a new vhd and resize2fs
+# echo "- - -" > /sys/class/scsi_host/host0/scan
+# echo 1 > /sys/class/scsi_device/0\:0\:0\:1/device/rescan
+# fdisk -l
+
+# umount /mnt/docker
+# dd if=/dev/sdb of=/dev/sdc bs=512M
+# fdisk /dev/sdc
+	delete old partition and create as new
+# e2fsck -f /dev/sdc1
+	do not mkfs otherwise everything will be gone!
+# resize2fs /dev/sdc1
+# mount /dev/sdb1 /mnt/docker
+
+
+
+
+###. Installing Hinemos 6.0.1 on centos
+Try:
+docker pull centos:centos7
+docker run --privileged -d --name hinemos01 -p 80:80 -p 80:80 centos:centos7 /sbin/init
+//docker run --privileged --name hinemos01 -v /sys/fs/cgroup:/sys/fs/cgroup:ro -p 80:80 -d centos:centos7 /sbin/init
+
+docker exec -it hinemos01 bash
+	yum -y install rsyslog net-snmp java-1.8.0-openjdk java-1.8.0-openjdk-devel wget unzip net-tools vim-common
+
+	rpm -ivh https://github.com/hinemos/hinemos/releases/download/v6.0.1/hinemos-6.0-manager-6.0.1-1.el7.x86_64.rpm
+	rpm -ivh https://github.com/hinemos/hinemos/releases/download/v6.0.1/hinemos-6.0-web-6.0.1-1.el7.x86_64.rpm
+	
+
+	systemctl enable snmpd.service
+	systemctl enable rsyslog.service
+
+	systemctl enable hinemos_manager.service
+	systemctl enable hinemos_web.service
+
+	systemctl start snmpd.service
+	systemctl start rsyslog.service
+
+
+	Q. /opt/hinemos/sbin/mng/hinemos_change_listen_address.sh change to host IP???
+	Q. How to change language?
+	Q. How to change timezone?
+	Q. How to put manager and client on different image?
+
+	Q. How to due with data? etc and var/data
+
+	Q. How to change self-agent s manager ip?
+
+
+###. Push
+
+$ docker commit c16378f943fe myimage
+Or build
+$ docker tag myimage registry-host:5000/myaccount/myimage
+$ docker login
+$ docker push registry-host:5000/myaccount/myimage
+
+
+pango@docker2:~/GitHub/docker-images$ docker push pango853/hinemos
+The push refers to a repository [docker.io/pango853/hinemos]
+Get https://registry-1.docker.io/v2/: dial tcp: lookup registry-1.docker.io: no such host
+
+
+###. Supervisor
+If you want to run multiple services, I indeed would use supervisor.
+You can make a supervisor configuration file for each service, ADD these in a directory,
+and run the supervisor with supervisord -c /etc/supervisor to point to a supervisor
+configuration file which loads all your services and looks like
+
+$ yum install python-setuptools
+$ easy_install supervisor
+$ supervisord --version
+$ echo_supervisord_conf > /etc/supervisord.conf
+//DAEMON=/usr/bin/supervisord
+//PIDFILE=/var/run/supervisord.pid
+//$ daemon  $DAEMON --pidfile=$PIDFILE -c /etc/supervisord.conf
+
+$ easy_install superlance for more additional features
+
+
+###. Useful commands
+docker container prune
+docker volume prune
+docker image prune
+docker rmi $(docker images -f 'dangling=true' -q)
+docker system prune
+
+###. Installing Hinemos 6.0.1 on ubuntu
+
+###. Installing Hinemos 6.0.1 on debian
+
+###. Installing Hinemos 6.0.1 on opensuse
+
+
+
+
+
+
+https://github.com/pozgo/docker-snmpd
+
+
+

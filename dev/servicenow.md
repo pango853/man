@@ -1,5 +1,44 @@
 
 # Tutorials
+
+## Dev
+
+### Build an inccident management app
+
+https://qiita.com/20_percent_cooler/items/ce92ae4a7c0d6cc037fe
+
+## ServiceNow Application Developer
+### Outbound REST Integrations
+REF: https://developer.servicenow.com/app.do#!/lp/servicenow_application_developer/app_store_learnv2_rest_london_outbound_integrations_in_servicenow_objectives?v=london
+
+
+System Web Services > Outbound > REST Message
+OR
+add a REST Message in Studio
+
+.. Mutual authentication profile, use the Application Navigator to open System Security > Protocol Profiles.
+
+Create the IPLookup Application
+1. Application Navigator > System Applications > Studio
+2. Create Application > Create > Start from scratch
+	Name: IPLookup
+	Scope: (this value is automatically populated)
+3. Create > OK > Back
+7. When the application creation is completed, click the Back to list button.
+8. Click the link to the IPLookup application to open it for editing.
+Create an Outbound REST Message
+1. Create a REST Message.
+   a. In Studio, click the Create Application File button.
+   b. In the Filter... field enter the text REST OR select Outbound Integrations from the categories in the left hand pane.
+   c. Select REST Message in the middle pane as the file type then click the Create button.
+2. Configure the REST Message:
+        Name: IPInfo
+        Description: Information about IP addresses
+        Endpoint: https://ipinfo.io/
+        Authentication type: No authentication
+3. Click the Submit button to save the REST message.
+
+
 ## Client Script
 Right click on record's header > Configure > Client Scripts > New
 	Table: Incident

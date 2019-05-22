@@ -1,0 +1,87 @@
+
+
+# apt-get install slapd
+# aptitude install ldap-utils libnss-ldap libpam-ldap
+
+
+
+# ldapsearch -x
+
+common → /etc/nsswitch.conf , /etc/ldap/ldap.conf
+libnss-ldap → /etc/libnss-ldap.conf
+libpam-ldap → /etc/pam_ldap.conf , /etc/pam.d/common-***
+
+
+
+
+# /etc/init.d/slapd start
+
+# vim example.ldif
+	dn: dc=example,dc=com
+	objectClass: domain
+	dc: example
+
+	dn: ou=People,dc=example,dc=com
+	objectClass: organizatinalUnit
+	ou: People
+
+# ldapadd -x -D 'cn=Manager,dc=example,dc=com' -w secret -f example.ldif
+
+
+
+# vim  /etc/nsswitch.conf
+	passwd:      compat ldap
+	group:       compat ldap
+	shadow:      compat ldap
+# vim /etc/pam.d/common-account
+	account sufficient      pam_ldap.so
+	account required        pam_unix.so
+# vim /etc/pam.d/common-auth
+	auth    sufficient      pam_ldap.so
+	auth    required        pam_unix.so nullok_secure try_first_pass
+# vim /etc/pam.d/common-password
+	password sufficient     pam_ldap.so
+	password required       pam_unix.so nullok obsecure min=4 max=8 md5
+# vim /etc/pam.d/common-session
+	session sufficient      pam_ldap.so
+	session required        pam_unix.so
+
+# vim /usr/local/lism/lib/scripts/mkhomedir.sh
+# ---------------------------------------------- #
+#!/bin/sh
+
+HOME=/home
+SKEL=/etc/skel
+
+UNUMATTR=uidNumber
+GNUMATTR=gidNumber
+
+if [ $# -lt 2 ]; then
+  echo "bad parameters"
+  exit 1
+fi
+
+UNUM=`echo $3 | sed -n "s/^.*$UNUMATTR=\([^#]*\).*$/\1/ip"`
+GNUM=`echo $3 | sed -n "s/^.*$GNUMATTR=\([^#]*\).*$/\1/ip"`
+
+if [ $1 = "add" ]; then
+  mkdir $HOME/$2
+  cp $SKEL/.[^.]* $HOME/$2
+  mkdir $HOME/$2/.profile
+
+  if [ -n "$UNUM" ]; then
+    chown -R $UNUM $HOME/$2
+  fi
+  if [ -n "$GNUM" ]; then
+    chgrp -R $GNUM $HOME/$2
+  fi
+elif [ $1 = "del" ]; then
+  rm -rf $HOME/$2
+fi
+# --------------------------------- #
+
+
+
+
+
+

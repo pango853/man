@@ -1,0 +1,46 @@
+
+0. Follow these
+	https://www.microsoft.com/en-us/translator/getstarted.aspx
+	https://github.com/MicrosoftTranslator/PythonConsole/blob/master/MTPythonSampleCode/MTPythonSampleCode.py
+
+1. Sign up an Microsoft Azure Marketplace account
+	You can hav Subscription with  2,000,000 Characters for free.
+http://datamarket.azure.com/dataset/bing/microsofttranslator
+
+You can cancel your service at any time by visiting https://datamarket.azure.com/account/datasets.
+
+https://datamarket.azure.com
+
+2. The Client ID and Client Secret values are used to authenticate your service
+   when you call the Translator API from your application. Take note of the Client ID
+   and Client Secret fields and keep these values confidential. You will need these when you develop your app.
+
+   Register your application here. https://datamarket.azure.com/developer/applications/register
+
+
+#. Support languages
+zh-CHS	Chinese Simplified
+zh-CHT	Chinese Traditional
+en	English
+ja	Japanese
+
+
+
+
+echo "#[DEFAULT:ja]" && echo && echo |cat - messages_ja.properties > messages_i18n.properties
+
+python proptranslate.py add --lang=en messages_en.properties
+python proptranslate.py add --lang=ja messages_ja.properties
+python proptranslate.py translate --lang=en
+python proptranslate.py translate --lang=zh-CHT
+python proptranslate.py translate --lang=zh-CHS
+python proptranslate.py build
+
+
+
+zh_CN
+zh_TW
+
+messages_zh.properties
+messages_zh_CN.properties
+messages_zh_TW.properties
