@@ -1,0 +1,76 @@
+
+
+Invoke-Sqlcmd -Query "SELECT GETDATE() AS TimeOfQuery;" -ServerInstance "MyComputer\MyInstance" 
+
+Invoke-Sqlcmd -InputFile "C:\MyFolder\TestSQLCmd.sql" | Out-File -filePath "C:\MyFolder\TestSQLCmd.rpt"
+
+$MyArray = "MyVar1 = 'String1'", "MyVar2 = 'String2'"  
+Invoke-Sqlcmd -Query "SELECT `$(MyVar1) AS Var1, `$(MyVar2) AS Var2;" -Variable $MyArray  
+
+
+
+Set-Location SQLSERVER:\SQL\MyComputer\MyInstance  
+Invoke-Sqlcmd -Query "SELECT GETDATE() AS TimeOfQuery;" -ServerInstance (Get-Item .)  
+
+Invoke-Sqlcmd "SELECT GETDATE() AS TimeOfQuery;" -ServerInstance "MyComputer\MyInstance"  
+
+Set-Location SQLSERVER:\SQL  
+Invoke-Sqlcmd "SELECT DB_NAME() AS DatabaseName;"
+
+
+# Import the SQL Server Module.    
+Import-Module Sqlps -DisableNameChecking;
+
+# To check whether the module is installed.
+Get-Module -ListAvailable -Name Sqlps;
+
+Invoke-Sqlcmd -ServerInstance 127.0.0.1,1433 -Database SampleDB -Username sa -Password password -Query "SELECT 1"
+Invoke-Sqlcmd -Query "SELECT GETDATE() AS TimeOfQuery;" -ServerInstance "127.0.0.1:1433" -Database SampleDB -Username sa -Password password
+
+Invoke-Sqlcmd -Query "SELECT 1;" -ServerInstance "172.17.7.88,1433" -Database SampleDb
+ -Username sa -Password password
+
+sqlcmd -S 172.17.7.88,1433 -U sa -P password
+
+
+
+Invoke-sqlcmd -InputFile $SQLScript -ServerInstance $InstanceName -Database $DBName -Querytimeout ([int]::MaxValue) -Verbose -ErrorAction 'Stop'
+
+
+
+CREATE TABLE TODO (ID NUMERIC(19) IDENTITY NOT NULL, DESCRIPTION VARCHAR(255) NULL, SUMMARY VARCHAR(255) NULL, PRIMARY KEY (ID))
+
+
+
+###. Install on Core Server
+Launch a VM of Windows Server, version 1709
+
+Ctrl+Alt+End and start powershell
+
+Install IE
+    Get-WindowsFeature | Format-List Name,InstallState | more
+    Get-WindowsFeature | Where-Object {$_. installstate -eq "installed"} | Format-List Name,Installstate | more
+
+Invoke-WebRequest -Uri 'https://download.microsoft.com/download/9/0/7/907AD35F-9F9C-43A5-9789-52470555DB90/ENU/SQLEXPR_x64_ENU.exe' -OutFile . -Verbose -PassThru
+
+
+VERBOSE: GET https://download.microsoft.com/download/9/0/7/907AD35F-9F9C-43A5-9789-52470555DB90/ENU/SQLEXPR_x64_ENU.exe with
+0-byte payload
+VERBOSE: received 431397432-byte response of content type application/octet-stream
+Invoke-WebRequest : The response content cannot be parsed because the Internet Explorer engine is not available, or Internet
+Explorer's first-launch configuration is not complete. Specify the UseBasicParsing parameter and try again.
+At line:1 char:1
++ Invoke-WebRequest -Uri 'https://download.microsoft.com/download/9/0/7 ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotImplemented: (:) [Invoke-WebRequest], NotSupportedException
+    + FullyQualifiedErrorId : WebCmdletIEDomNotSupportedException,Microsoft.PowerShell.Commands.InvokeWebRequestCommand
+
+
+
+
+
+Or: https://download.microsoft.com/download/9/0/7/907AD35F-9F9C-43A5-9789-52470555DB90/ENU/SQLEXPRADV_x64_ENU.exe
+
+
+[DELETE]    chansi:104.41.189.15
+

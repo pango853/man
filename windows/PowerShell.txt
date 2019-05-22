@@ -1,0 +1,86 @@
+
+
+
+~\Documents\WindowsPowerShell\profile.ps1
+
+> [Environment]::GetFolderPath("Personal") 
+> new-item -type file $profile -force
+> Set-ExecutionPolicy RemoteSigned
+
+> $env:Path = $env:Path + ";C:\Program Files\GnuWin32\bin"
+> [Environment]::SetEnvironmentVariable ( "Path", $env:Path, [System.EnvironmentVariableTarget]::Machine )
+> [Environment]::SetEnvironmentVariable ( "INCLUDE", $env:INCLUDE, [System.EnvironmentVariableTarget]::User )
+
+> Get-Authenticode 
+
+> Update-Help
+> Get-Help about_Execution_Policies
+
+> Get-Executionpolicy -List
+> Get-ExecutionPolicy -List | Format-Table -AutoSize
+
+
+> 1..20 | ForEach-Object { Add-Content test.txt "Item$_" }
+
+
+http://msdn.microsoft.com/en-us/library/k50ex0x9.aspx
+	System.Windows.Forms
+
+
+
+
+###. Programming
+
+get-help get-help
+get-help services
+get-help start-service -online
+get-itemproperty c:\windows\regedit.exe
+get-itemproperty c:\windows\regedit.exe | format-list
+dir | get-itemproperty | format-list
+dir | get-itemproperty | format-list | out-file info.txt
+
+set-executionpolicy remotesigned
+$list = dir
+ get-itemproperty $list | format-list | out-file out.txt
+
+$list = dir
+ foreach ($item in $list) {
+     $fn = $item.name + "_.txt"
+     get-itemproperty $item | format-list | out-file $fn
+ }
+
+$list = dir
+ foreach ($item in $list) {
+     $fn = $item.name + "_.txt"
+     if (test-path $fn) {
+         del $fn
+     }
+ }
+
+get-help a*
+get-service | where { $_.Status -eq "running"} | select-object -last 10
+
+Set-ExecutionPolicy Unrestricted
+Set-ExecutionPolicy RemoteSigned
+Set-ExecutionPolicy AllSigned
+
+write-host "############### After##########"
+
+Array
+$myArray = "abc", "xyz"
+$myArray[1]
+$myArray.GetType()
+
+Another way of creating Array
+$myArray = @()
+$myArray = @("abc", "xyz", "pqr", "dcb")
+$myArray.Length
+
+$myArray = 1..8
+$myArray
+$myArray = 14..8
+$myArray.Contains(11)
+
+$myarray = 5, 10, 20, 4
+$myarray -notcontains 20
+

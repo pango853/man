@@ -1,0 +1,33 @@
+
+
+$ sudo apt-get install sysv-rc-conf
+$ sudo sysv-rc-conf --list
+acpid        2:on       3:on    4:on    5:on
+apache2      2:on       3:on    4:on    5:on
+atd          0:off      1:off   2:on    3:on    4:on    5:on    6:off
+bootlogd     S:on
+bootlogs     1:on       2:on    3:on    4:on    5:on
+console-setu S:on
+cron         2:on       3:on    4:on    5:on
+exim4        0:off      1:off   2:on    3:on    4:on    5:on    6:off
+halt         0:off
+ifupdown     0:off      6:off   S:on
+ifupdown-cle S:on
+（...）
+
+$ sudo apt-get install chkconfig
+$ sudo chkconfig --list
+acpid                     0:off  1:off  2:on   3:on   4:on   5:on   6:off
+apache2                   0:off  1:off  2:on   3:on   4:on   5:on   6:off
+atd                       0:off  1:off  2:on   3:on   4:on   5:on   6:off
+bootlogd                  0:off  1:off  2:off  3:off  4:off  5:off  6:off  S:on
+bootlogs                  0:off  1:on   2:on   3:on   4:on   5:on   6:off
+bootmisc.sh               0:off  1:off  2:off  3:off  4:off  5:off  6:off  S:on
+checkfs.sh                0:off  1:off  2:off  3:off  4:off  5:off  6:off  S:on
+checkroot.sh              0:off  1:off  2:off  3:off  4:off  5:off  6:off  S:on
+console-setup             0:off  1:off  2:off  3:off  4:off  5:off  6:off  S:on
+cron                      0:off  1:off  2:on   3:on   4:on   5:on   6:off
+（...）
+$ sudo chkconfig apache2 on
+$ sudo chkconfig apache2 --list
+apache2                   0:off  1:off  2:on   3:on   4:on   5:on   6:off

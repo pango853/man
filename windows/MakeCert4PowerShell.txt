@@ -1,0 +1,93 @@
+Make Self-Signed Key in Windows
+	with MakeCert.exe of Windows SDK
+
+
+X.509証明書(.cerファイル)と秘密キーファイル(.pvkファイル)
+
+自己署名証明書を作成
+> makecert -r -n "CN=certificationcenter.macer.local" -a sha1 -eku 1.3.6.1.5.5.7.3.3 -sv macerroot.pvk macerroot.cer -ss Root -sr localMachine
+> makecert -r -sky exchange -n "CN=Encpassword" -pe -a sha1 -len 2048 -b 1/1/2013 -e 12/31/2013 -sr  currentuser -ss My EncPassword.cer
+	-n	nx509name サブジェクトの証明書名を指定します。この名前は X.500 標準に準拠する必要があります。最も簡単な方法は、名前の前に CN= を付けて二重引用符で囲んで指定する方法です。たとえば、"CN=myName" とします
+	-a	algorithm	署名アルゴリズムを指定します。md5 (既定値) または sha1 を指定する必要があります
+	-eku	ekuoid	コンマ区切りの、拡張キー用途オブジェクト識別子 (OID) の一覧を証明書に挿入します
+	-r	r	自己署名証明書を作成します
+	-sv	svpvkFile	サブジェクトの秘密キー ファイル .pvk を指定します。ファイルが存在しない場合は、このオプションで作成されます
+	-ss	store	出力される証明書を格納する、サブジェクトの証明書ストア名を指定します
+> makecert -pe -n "CN=powershell.macer.local" -ss My -a sha1 -eku 1.3.6.1.5.5.7.3.3 -iv macerroot.pvk -ic macerroot.cer
+	-pe	pe	生成された秘密キーをエクスポート可能と見なします。これにより、秘密キーを証明書に組み込むことができるようになります
+	-iv	ivpvkFile	発行元の秘密キー ファイル .pvk を指定します
+	-ic	
+
+証明書がインストールされたことを確認
+> gci CERT:\CurrentUser\My -CodeSigningCert
+> Get-Help about_signing
+> dir CERT:\CurrentUser\My | Where-Object {$_.Subject -eq "CN=encpassword"} 
+
+スクリプトに署名
+> $cert = @(gci CERT:\CurrentUser\My -CodeSigningCert)[0]
+> Set-AuthenticodeSignature myscript.ps1 $cert
+
+> Set-ExecutionPolicy AllSigned
+
+
+################################################################
+$PlainPassword = "password" 
+$thumbprint = "13B97E99532151A1FC2617636CB04FE07C43C6C2" 
+$Cert = get-item cert:\CurrentUser\MY\$thumbprint 
+## 暗号化に必要な System.Security アセンブリを読み込む 
+Add-type –AssemblyName System.Security 
+## 生パスワードをバイト型に変換 
+$pass = [Text.Encoding]::UTF8.GetBytes($PlainPassword) 
+## バイト型に変換したパスワードを CMS/PKCS #7 ContentInfo データ構造体と呼ばれる 
+## データとして格納します。つまり、所定の封筒に入れるのに合った形に成形している。 
+$content = new-object Security.Cryptography.Pkcs.ContentInfo –argumentList (,$pass) 
+## ContentInfo データをエンベロープデータとして格納。 
+## 要は、相手に渡したいパスワードデータを封筒に入れている。 
+$env = new-object Security.Cryptography.Pkcs.EnvelopedCms $content 
+## エンベロープの受取人の証明書を用いて、エンベロープを暗号化 
+## つまり、データ入れた封筒が誰からも開封できないように証明書で封印している 
+$env.Encrypt((new-object System.Security.Cryptography.Pkcs.CmsRecipient($Cert))) 
+##暗号化した封筒をBase64でエンコードして文字列に変換 
+[Convert]::ToBase64String($env.Encode())
+
+################################################################
+
+Step 1: Get The Certificate
+First, make sure you retrieve the certificate you want to strip the private key from. You have seen already how to do that. For example:
+
+$cert = @(dir cert:\CurrentUser\My -recurse | ? { $_.Subject -like '*TEST*' })[0]
+
+You may want to check whether the certificate has a private key at all:
+
+PS> $cert.HasPrivateKey
+True
+
+Step 2: Export Certificate Without Private Key
+Next, you need to export the certificate without the private key and store it as byte array. That is pretty easy because the certificate has an Export() method you can use:
+
+# export certificate
+$bytes = $cert.Export('Cert')
+
+Step 3: Delete Installed Certificate
+Now, to get rid of the private key, delete the installed certificate. Of course, before you do that you should be aware of the consequences. You are losing the private key this way (but, after all, that was the idea). You also need admin privileges so be sure to launch PowerShell in elevated mode if you are using UAC.
+
+Deleting a certificate is not just as straight-forward because the cert: provider implemented in PowerShell does not support deleting certificates. So you need to resort to the raw .NET framework methods. First, open the certificate store the certificate resides in (read/write mode) and then remove the certificate:
+
+# delete certificate
+$store = new-object system.security.cryptography.x509certificates.x509Store 'My', 'CurrentUser'
+$store.Open('ReadWrite')
+$store.Remove($cert)
+
+Step 4: Re-Import Certificate w/o Private Key
+Since you exported the certificate without private key, all you need to do is re-import the exported certificate. It will be restored but has now no private key anymore. To re-import a certificate, simply create a .NET x509Certificate2Collection object and use its Import() method to read in the byte array you exported earlier. BTW you could also specify a path to a .cert file to import regular filebased certificates this way. Then, add the first element of your certificate collection to the certificate store you deleted the certificate from:
+
+# re-import certificate
+$container = new-object system.security.cryptography.x509certificates.x509certificate2collection
+$container.Import($bytes)
+$store.Add($container[0])
+
+Step 5: Clean Up
+Done. Almost. For sanitary reasons, don't forget to close the certificate store you opened earlier:
+
+$store.close()
+

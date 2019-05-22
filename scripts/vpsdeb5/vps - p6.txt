@@ -1,0 +1,54 @@
+6. Mail server
+# sudo apt-get install postfix dovecot-common dovecot-pop3d dovecot-imapd sasl2-bin
+# sudo apt-get install postfix-tls postfix-mysql libsasl2-modules libsasl2-modules-sql sasl2-bin libpam-mysql openssl libsasl2-2
+# /usr/sbin/postconf -m
+
+
+# wget ftp://ftp.fml.org/pub/fml8/fml-7.98.15-20100306.tar.gz
+# tar -zxvf fml-7.98.15-20100306.tar.gz  
+# cd fml-7.98.15-20100306
+# sudo groupadd fml
+# sudo useradd -d /var/www/fml -g fml fml
+# sudo apt-get install make
+# ./configure
+# sudo make install
+
+
+
+/etc/init.d/postfix restart
+/etc/init.d/postfix stop
+/etc/init.d/postfix start
+# apt-get install dovecot
+# apt-get install dovecot-imapd dovecot-pop3d dovecot-common
+# nano /etc/dovecot/dovecot.conf
+	protocols = pop3 imap
+	disable_plaintext_auth = no
+	pop3_uidl_format = %08Xu%08Xv
+# /etc/init.d/dovecot restart
+# nano /etc/postfix/main.cf
+	smtpd_sasl_auth_enable = yes
+	smtpd_sasl_local_domain = yourdomain.com
+	smtpd_recipient_restrictions = permit_mynetworks,permit_sasl_authenticated,reject_unauth_destination
+	smtpd_sasl_security_options = noanonymous 
+# nano /etc/dovecot/dovecot.conf 
+	auth default {
+	mechanisms = plain login
+	passdb pam {
+	}
+	userdb passwd {
+	}
+	socket listen {
+	client {
+	path = /var/spool/postfix/private/auth
+	mode = 0660
+	user = postfix
+	group = postfix
+	}
+	}
+	}
+# /etc/init.d/saslauthd restart
+# /etc/init.d/postfix restart
+# /etc/init.d/dovecot restart
+
+7. Antivirus
+

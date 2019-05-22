@@ -1,0 +1,546 @@
+<html lang="ja">
+<head>
+<meta http-equiv="Content-type" content="text/html; charset=Shift_JIS">
+<meta http-equiv="Content-Language" content="ja">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Cache-Control" content="no-cache">
+<meta http-equiv="Expires" content="Thu, 01 Dec 1994 16:00:00 GMT">
+<meta name="robots" content="INDEX,FOLLOW">
+<link rel="stylesheet" href="/style.css" type="text/css">
+<link rel="shortcut icon" href="/favicon.ico">
+<SCRIPT type="text/javascript" language="JavaScript">
+<!--
+if(self !=top){
+top.location.href=self.location.href;
+}
+// -->
+</SCRIPT>
+
+
+<meta name="description" content="ファイアウォール構築(iptables)">
+<meta name="KeyWords" content="ファイアウォール構築(iptables)">
+<title>ファイアウォール構築(iptables) - Fedoraで自宅サーバー構築</title>
+</head>
+<body>
+
+<div align="right">
+<a href="http://www.seo-stats.com" target="_blank"><img src="http://www.seo-stats.com/services/seostats/seostats.php?s=cf431a59bdee678614cffd945c6a&bg=3366FF&textcolor=FFFFFF&bordercolor=3366FF&indicatorcolor=5EAA5E&ugo=0&uho=0&umo=0&amo=0&upr=1&tuv=0&tpv=0&yuv=0&ypv=0&ttuv=0&ttpv=0&uonline=1&f=49564" title="SEO Stats powered by SEO-Stats.com" border="0" /></a>
+</div><h1>
+ファイアウォール構築(iptables)<br><br>
+<font size=3>
+最終更新日：
+
+2010.12.24
+</font>
+</h1>
+
+<a href="/" name="top">&lt;&lt;トップページ</a>
+<a href="/sunbbs/index.html">&lt;&lt;新着情報</a>
+<a href="/patio/patio.cgi">&lt;&lt;質問BBS</a>
+<!--<a href="/epad/epad.cgi">&lt;&lt;雑談BBS</a>-->
+<a href="/memo/memo.cgi?mode=list">&lt;&lt;逆引き集</a>
+<a href="/enq/qnaire2.cgi">&lt;&lt;アンケート</a>
+<a href="/link3/link3.cgi">&lt;&lt;リンク集</a>
+<!--<a href="search.shtml">&lt;&lt;サイト内検索</a>-->
+<a href="/cgi-bin/namazu.cgi?idxname=fedora">&lt;&lt;サイト内検索</a>
+<!--<a href="download.shtml">&lt;&lt;ダウンロード</A>-->
+<a href="/mail/mail.cgi">&lt;&lt;管理人へメール</A>
+<a href="http://centossrv.com/">&lt;&lt;CentOSで自宅サーバー構築</A>
+
+
+<br><h4>■概要</h4>
+<table border=0 width=100%><tr><td>
+Linuxサーバー上にファイアウォールを構築する。<br>
+ここでは、Linuxのパケットフィルタリング機能である<a href="http://www.netfilter.org/projects/iptables/index.html" target="_blank">iptables</a>を使用して、Web等外部に公開するサービス以外のポートへのアクセスをブロックするようにする。<br>
+<br>
+<span style="font-weight:bold; color:red">※通常はルーター側にもファイアウォール機能があるため、Linuxサーバー上でファイアウォールを構築後にポートを開放する場合は、ルーター側とLinuxサーバー側の2箇所でポート開放を行う必要があることに注意</span><br>
+<br>
+【想定するネットワーク環境】<br>
+<br>
+<img src=/img/iptables.gif><br>
+<br>
+<table summary="dmy"><tr><td>
+<script type="text/javascript"><!--
+google_ad_client = "pub-8226454717902609";
+/* 728x90, 作成済み 08/08/21 */
+google_ad_slot = "6129685669";
+google_ad_width = 728;
+google_ad_height = 90;
+//-->
+</script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</td></tr>
+<tr><td align="center">
+<script type="text/javascript"><!--
+google_ad_client = "pub-8226454717902609";
+/*  */
+google_ad_slot = "9173163258";
+google_ad_width = 728;
+google_ad_height = 15;
+//-->
+</script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</td></tr></table>
+
+</td></tr></table>
+
+<br><h4>■iptables設定</h4>
+<table border=0 width=100%><tr><td>
+（１）iptables設定
+</td></tr></table>
+<table border=0 width=100%><tr><td>
+<table bgcolor=black width=100% border=1 cellspacing=0><tr><td><font color=white><pre>
+[root@fedora ~]# vi iptables.sh<font color="#00FF33">　←　ファイアウォール設定スクリプト作成</font>
+#!/bin/bash
+
+
+#---------------------------------------#
+# 設定開始                              #
+#---------------------------------------#
+
+# インタフェース名定義
+LAN=eth0
+
+#---------------------------------------#
+# 設定終了                              #
+#---------------------------------------#
+
+# 内部ネットワークのネットマスク取得
+LOCALNET_MASK=`ifconfig $LAN|sed -e 's/^.*Mask:\([^ ]*\)$/\1/p' -e d`
+
+# 内部ネットワークアドレス取得
+LOCALNET_ADDR=`netstat -rn|grep $LAN|grep $LOCALNET_MASK|cut -f1 -d' '`
+LOCALNET=$LOCALNET_ADDR/$LOCALNET_MASK
+
+
+# ファイアウォール停止(すべてのルールをクリア)
+/etc/rc.d/init.d/iptables stop
+
+# デフォルトルール(以降のルールにマッチしなかった場合に適用するルール)設定
+iptables -P INPUT   DROP   # 受信はすべて破棄
+iptables -P OUTPUT  ACCEPT # 送信はすべて許可
+iptables -P FORWARD DROP   # 通過はすべて破棄
+
+# 自ホストからのアクセスをすべて許可
+iptables -A INPUT -i lo -j ACCEPT
+
+# 内部からのアクセスをすべて許可
+iptables -A INPUT -s $LOCALNET -j ACCEPT
+
+# 内部から行ったアクセスに対する外部からの返答アクセスを許可
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# SYN Cookiesを有効にする
+# ※TCP SYN Flood攻撃対策
+sysctl -w net.ipv4.tcp_syncookies=1 > /dev/null
+sed -i '/net.ipv4.tcp_syncookies/d' /etc/sysctl.conf
+echo "net.ipv4.tcp_syncookies=1" >> /etc/sysctl.conf
+
+# ブロードキャストアドレス宛pingには応答しない
+# ※Smurf攻撃対策
+sysctl -w net.ipv4.icmp_echo_ignore_broadcasts=1 > /dev/null
+sed -i '/net.ipv4.icmp_echo_ignore_broadcasts/d' /etc/sysctl.conf
+echo "net.ipv4.icmp_echo_ignore_broadcasts=1" >> /etc/sysctl.conf
+
+# ICMP Redirectパケットは拒否
+sed -i '/net.ipv4.conf.*.accept_redirects/d' /etc/sysctl.conf
+for dev in `ls /proc/sys/net/ipv4/conf/`
+do
+    sysctl -w net.ipv4.conf.$dev.accept_redirects=0 > /dev/null
+    echo "net.ipv4.conf.$dev.accept_redirects=0" >> /etc/sysctl.conf
+done
+
+# Source Routedパケットは拒否
+sed -i '/net.ipv4.conf.*.accept_source_route/d' /etc/sysctl.conf
+for dev in `ls /proc/sys/net/ipv4/conf/`
+do
+    sysctl -w net.ipv4.conf.$dev.accept_source_route=0 > /dev/null
+    echo "net.ipv4.conf.$dev.accept_source_route=0" >> /etc/sysctl.conf
+done
+
+# フラグメント化されたパケットはログを記録して破棄
+iptables -A INPUT -f -j LOG --log-prefix '[IPTABLES FRAGMENT] : '
+iptables -A INPUT -f -j DROP
+
+# 外部とのNetBIOS関連のアクセスはログを記録せずに破棄
+# ※不要ログ記録防止
+iptables -A INPUT ! -s $LOCALNET -p tcp -m multiport --dports 135,137,138,139,445 -j DROP
+iptables -A INPUT ! -s $LOCALNET -p udp -m multiport --dports 135,137,138,139,445 -j DROP
+iptables -A OUTPUT ! -d $LOCALNET -p tcp -m multiport --sports 135,137,138,139,445 -j DROP
+iptables -A OUTPUT ! -d $LOCALNET -p udp -m multiport --sports 135,137,138,139,445 -j DROP
+
+# 1秒間に4回を超えるpingはログを記録して破棄
+# ※Ping of Death攻撃対策
+iptables -N LOG_PINGDEATH
+iptables -A LOG_PINGDEATH -m limit --limit 1/s --limit-burst 4 -j ACCEPT
+iptables -A LOG_PINGDEATH -j LOG --log-prefix '[IPTABLES PINGDEATH] : '
+iptables -A LOG_PINGDEATH -j DROP
+iptables -A INPUT -p icmp --icmp-type echo-request -j LOG_PINGDEATH
+
+# 全ホスト(ブロードキャストアドレス、マルチキャストアドレス)宛パケットはログを記録せずに破棄
+# ※不要ログ記録防止
+iptables -A INPUT -d 255.255.255.255 -j DROP
+iptables -A INPUT -d 224.0.0.1 -j DROP
+
+# 113番ポート(IDENT)へのアクセスには拒否応答
+# ※メールサーバ等のレスポンス低下防止
+iptables -A INPUT -p tcp --dport 113 -j REJECT --reject-with tcp-reset
+
+# ACCEPT_COUNTRY_MAKE関数定義
+# 指定された国のIPアドレスからのアクセスを許可するユーザ定義チェイン作成
+ACCEPT_COUNTRY_MAKE(){
+    for addr in `cat /tmp/cidr.txt|grep ^$1|awk '{print $2}'`
+    do
+        iptables -A ACCEPT_COUNTRY -s $addr -j ACCEPT
+    done
+}
+
+# DROP_COUNTRY_MAKE関数定義
+# 指定された国のIPアドレスからのアクセスを破棄するユーザ定義チェイン作成
+DROP_COUNTRY_MAKE(){
+    for addr in `cat /tmp/cidr.txt|grep ^$1|awk '{print $2}'`
+    do
+        iptables -A DROP_COUNTRY -s $addr -m limit --limit 1/s -j LOG --log-prefix '[IPTABLES DENY_COUNTRY] : '
+        iptables -A DROP_COUNTRY -s $addr -j DROP
+    done
+}
+
+# iptables設定スクリプト外部関数取り込み
+. /root/iptables_functions
+
+# IPアドレスリスト取得
+IPLISTGET
+
+# 日本からのアクセスを許可するユーザ定義チェインACCEPT_COUNTRY作成
+iptables -N ACCEPT_COUNTRY
+ACCEPT_COUNTRY_MAKE JP
+# 以降,日本からのみアクセスを許可したい場合はACCEPTのかわりにACCEPT_COUNTRYを指定する
+
+# 中国・韓国・台湾※からのアクセスをログを記録して破棄
+# ※全国警察施設への攻撃元上位３カ国(日本・アメリカを除く)
+# http://www.cyberpolice.go.jp/detect/observation.htmlより
+iptables -N DROP_COUNTRY
+DROP_COUNTRY_MAKE CN
+DROP_COUNTRY_MAKE KR
+DROP_COUNTRY_MAKE TW
+iptables -A INPUT -j DROP_COUNTRY
+
+#----------------------------------------------------------#
+# 各種サービスを公開する場合の設定(ここから)               #
+#----------------------------------------------------------#
+
+# 外部からのTCP22番ポート(SSH)へのアクセスを日本からのみ許可
+# ※SSHサーバーを公開する場合のみ
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT_COUNTRY
+
+# 外部からのTCP/UDP53番ポート(DNS)へのアクセスを許可
+# ※外部向けDNSサーバーを運用する場合のみ
+iptables -A INPUT -p tcp --dport 53 -j ACCEPT
+iptables -A INPUT -p udp --dport 53 -j ACCEPT
+
+# 外部からのTCP80番ポート(HTTP)へのアクセスを許可
+# ※Webサーバーを公開する場合のみ
+iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+
+# 外部からのTCP443番ポート(HTTPS)へのアクセスを許可
+# ※Webサーバーを公開する場合のみ
+iptables -A INPUT -p tcp --dport 443 -j ACCEPT
+
+# 外部からのTCP21番ポート(FTP)へのアクセスを日本からのみ許可
+# ※FTPサーバーを公開する場合のみ
+iptables -A INPUT -p tcp --dport 21 -j ACCEPT_COUNTRY
+
+# 外部からのPASV用ポート(FTP-DATA)へのアクセスを日本からのみ許可
+# ※FTPサーバーを公開する場合のみ
+# ※PASV用ポート60000:60030は当サイトの設定例
+iptables -A INPUT -p tcp --dport 60000:60030 -j ACCEPT_COUNTRY
+
+# 外部からのTCP25番ポート(SMTP)へのアクセスを許可
+# ※SMTPサーバーを公開する場合のみ
+iptables -A INPUT -p tcp --dport 25 -j ACCEPT
+
+# 外部からのTCP465番ポート(SMTPS)へのアクセスを日本からのみ許可
+# ※SMTPSサーバーを公開する場合のみ
+iptables -A INPUT -p tcp --dport 465 -j ACCEPT_COUNTRY
+
+# 外部からのTCP110番ポート(POP3)へのアクセスを日本からのみ許可
+# ※POP3サーバーを公開する場合のみ
+iptables -A INPUT -p tcp --dport 110 -j ACCEPT_COUNTRY
+
+# 外部からのTCP995番ポート(POP3S)へのアクセスを日本からのみ許可
+# ※POP3Sサーバーを公開する場合のみ
+iptables -A INPUT -p tcp --dport 995 -j ACCEPT_COUNTRY
+
+# 外部からのTCP143番ポート(IMAP)へのアクセスを日本からのみ許可
+# ※IMAPサーバーを公開する場合のみ
+iptables -A INPUT -p tcp --dport 143 -j ACCEPT_COUNTRY
+
+# 外部からのTCP993番ポート(IMAPS)へのアクセスを日本からのみ許可
+# ※IMAPSサーバーを公開する場合のみ
+iptables -A INPUT -p tcp --dport 993 -j ACCEPT_COUNTRY
+
+# 外部からのUDP1194番ポート(OpenVPN)へのアクセスを日本からのみ許可
+# ※OpenVPNサーバーを公開する場合のみ
+iptables -A INPUT -p udp --dport 1194 -j ACCEPT_COUNTRY
+
+# VPNインタフェース用ファイアウォール設定
+# ※OpenVPNサーバーを公開する場合のみ
+[ -f /etc/openvpn/openvpn-startup ] && /etc/openvpn/openvpn-startup
+
+
+#----------------------------------------------------------#
+# 各種サービスを公開する場合の設定(ここまで)               #
+#----------------------------------------------------------#
+
+# 拒否IPアドレスからのアクセスはログを記録せずに破棄
+# ※拒否IPアドレスは/root/deny_ipに1行ごとに記述しておくこと
+# (/root/deny_ipがなければなにもしない)
+if [ -s /root/deny_ip ]; then
+    for ip in `cat /root/deny_ip`
+    do
+        iptables -I INPUT -s $ip -j DROP
+    done
+fi
+
+# 上記のルールにマッチしなかったアクセスはログを記録して破棄
+iptables -A INPUT -m limit --limit 1/s -j LOG --log-prefix '[IPTABLES INPUT] : '
+iptables -A INPUT -j DROP
+iptables -A FORWARD -m limit --limit 1/s -j LOG --log-prefix '[IPTABLES FORWARD] : '
+iptables -A FORWARD -j DROP
+
+# サーバー再起動時にも上記設定が有効となるようにルールを保存
+/etc/rc.d/init.d/iptables save
+
+# iptables 1.4.3.1バグ対処
+iptables -V|grep 1.4.3.1 > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+    sed -i s/"-s \!"/"\! -s"/g /etc/sysconfig/iptables
+    sed -i s/"-d \!"/"\! -d"/g /etc/sysconfig/iptables
+fi
+
+# ファイアウォール起動
+/etc/rc.d/init.d/iptables start
+
+
+
+[root@fedora ~]# chmod 700 iptables.sh<font color="#00FF33">　←　ファイアウォール設定スクリプトへ実行権限付加</font>
+
+[root@fedora ~]# vi iptables_functions<font color="#00FF33">　←　ファイアウォール設定スクリプト外部関数作成</font>
+# IPアドレスリスト取得関数定義
+IPLISTGET(){
+    # http://nami.jp/ipv4bycc/から最新版IPアドレスリストを取得する
+    wget -q http://nami.jp/ipv4bycc/cidr.txt.gz
+    gunzip cidr.txt.gz > /dev/null 2>&1
+    # 最新版IPアドレスリストが取得できなかった場合
+    if [ ! -f cidr.txt ]; then
+        if [ -f /tmp/cidr.txt ]; then
+            # バックアップがある場合はその旨をroot宛にメール通知して処理を打ち切る
+            echo cidr.txt was read from the backup! | mail -s $0 root
+            return
+        else
+            # バックアップがない場合はその旨をroot宛にメール通知して処理を打ち切る
+            echo cidr.txt not found!|mail -s $0 root
+            exit 1
+        fi
+    fi
+    # 最新版IPアドレスリストを /tmpへバックアップする
+    /bin/mv cidr.txt /tmp/cidr.txt
+}
+
+</pre></font></td></tr></table>
+</td></tr></table>
+
+<table border=0 width=100%><tr><td>
+<br>
+（２）IPアドレスリスト更新チェック<br>
+IPアドレスリストは頻繁に更新されるので、毎日自動でIPアドレスリストの更新有無をチェックし、更新がある場合はファイアウォール設定スクリプトを再起動するようにする。
+</td></tr></table>
+<table border=0 width=100%><tr><td>
+<table bgcolor=black width=100% border=1 cellspacing=0><tr><td><font color=white><pre>
+[root@fedora ~]# vi /etc/cron.daily/iplist_check.sh<font color="#00FF33">　←　IPアドレスリストチェックスクリプト作成</font>
+#!/bin/bash
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# 新旧IPLIST差分チェック件数(0を指定するとチェックしない)
+# ※新旧IPLIST差分がSABUN_CHKで指定した件数を越える場合はiptables設定スクリプトを実行しない
+# ※新旧IPLIST差分チェック理由はhttp://centossrv.com/bbshtml/webpatio/1592.shtmlを参照
+SABUN_CHK=100
+[ $# -ne 0 ] && SABUN_CHK=${1}
+
+# チェック国コード
+COUNTRY_CODE='JP CN KR TW'
+
+# iptables設定スクリプトパス
+IPTABLES=/root/iptables.sh
+
+# iptables設定スクリプト外部関数取り込み
+. /root/iptables_functions
+
+# IPアドレスリスト最新化
+rm -f IPLIST.new
+IPLISTGET
+for country in $COUNTRY_CODE
+do
+    if [ -f /tmp/cidr.txt ]; then
+        grep ^$country /tmp/cidr.txt >> IPLIST.new
+    else
+        grep ^$country /tmp/IPLIST >> IPLIST.new
+    fi
+done
+[ ! -f /tmp/IPLIST ] && cp IPLIST.new /tmp/IPLIST
+
+# IPアドレスリスト更新チェック
+diff -q /tmp/IPLIST IPLIST.new > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    if [ ${SABUN_CHK} -ne 0 ]; then
+        if [ $(diff /tmp/IPLIST IPLIST.new | egrep -c '<|>') -gt ${SABUN_CHK} ]; then
+            (
+             diff /tmp/IPLIST IPLIST.new
+             echo
+             echo "$IPTABLES not executed."
+            ) | mail -s 'IPLIST UPDATE' root
+            rm -f IPLIST.new
+            exit
+        fi
+    fi
+    /bin/mv IPLIST.new /tmp/IPLIST
+    $IPTABLES > /dev/null
+else
+    rm -f IPLIST.new
+fi
+
+
+
+[root@fedora ~]# chmod +x /etc/cron.daily/iplist_check.sh<font color="#00FF33">　←　IPアドレスリストチェックスクリプトに実行権限付加</font>
+</pre></font></td></tr></table>
+</td></tr></table>
+<span style="font-weight:bold; color:red">※CRONより/root/iptables.sh not executed.という内容のメールが届いた場合の対処<br>
+なんらかの理由で、http://nami.jp/ipv4bycc/から取得した最新のIPアドレスリストと、前回取得したIPアドレスリストとの差分が100件を超えたため、iptables設定スクリプトを実行しなかったことを示す。<br>
+サーバーを長時間停止していた等、前回取得したIPアドレスリストとの差分が100件を超える理由が明確な場合には、「/etc/cron.daily/iplist_check.sh 0」と実行することにより強制的にiptables設定スクリプトを実行する。</span><br>
+
+<br><h4>■iptables起動</h4>
+<table border=0 width=100%><tr><td>
+<table bgcolor=black width=100% border=1 cellspacing=0><tr><td><font color=white><pre>
+[root@fedora ~]# ./iptables.sh<font color="#00FF33">　←　ファイアウォール設定スクリプト実行</font>
+ファイアウォールルールを適用中:                            [  OK  ]
+チェインポリシーを ACCEPT に設定中filter                   [  OK  ]
+iptables モジュールを取り外し中                            [  OK  ]
+ファイアウォールのルールを /etc/sysconfig/iptables に保存中[  OK  ]
+ファイアウォールルールを適用中:                            [  OK  ]
+チェインポリシーを ACCEPT に設定中filter                   [  OK  ]
+iptables モジュールを取り外し中                            [  OK  ]
+iptables ファイアウォールルールを適用中:                   [  OK  ]
+<span style="font-weight:bold; color:red">※マシンスペックにより時間がかかる</span>
+
+[root@fedora ~]# chkconfig iptables on<font color="#00FF33">　←　iptables自動起動設定</font>
+
+[root@fedora ~]# chkconfig --list iptables<font color="#00FF33">　←　iptables自動起動設定確認</font>
+iptables        0:off   1:off   2:on    3:on    4:on    5:on    6:off<font color="#00FF33">　←　ランレベル2～5のonを確認</font>
+</pre></font></td></tr></table>
+</td></tr></table>
+
+<br><table summary="dmy"><tr><td>
+<script type="text/javascript"><!--
+google_ad_client = "pub-8226454717902609";
+/* 728x90, 作成済み 08/08/21 */
+google_ad_slot = "6129685669";
+google_ad_width = 728;
+google_ad_height = 90;
+//-->
+</script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</td></tr>
+<tr><td align="center">
+<script type="text/javascript"><!--
+google_ad_client = "pub-8226454717902609";
+/*  */
+google_ad_slot = "9173163258";
+google_ad_width = 728;
+google_ad_height = 15;
+//-->
+</script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</td></tr></table>
+
+
+<br><h4>■iptables確認</h4>
+<table border=0 width=100%><tr><td>
+<a href="https://www.grc.com/x/ne.dll?bh0bkyd2" target="_blank">Shields UP! - Internet Vulnerability Profiling</a>で｢Proceed｣ボタン(２つあるがどちらでもよい)をクリック⇒｢All Service Ports｣ボタンをクリックして、外部からのアクセスを許可または拒否応答しているポートのみ<img src="https://www.grc.com/image/open.gif"><font color=red>OPEN</font>または<img src="https://www.grc.com/image/closed.gif"><font color=blue>CLOSED</font>で、その他のポートは<img src="https://www.grc.com/image/stealth.gif"><font color=green>STEALTH</font>であることを確認
+</td></tr></table>
+
+<br>
+<div align=center>
+<a href="http://twitter.com/share" class="twitter-share-button" data-count="horizontal" data-lang="ja">Tweet</a><script type="text/javascript" src="http://platform.twitter.com/widgets.js"></script>
+<a href="http://mixi.jp/share.pl" class="mixi-check-button" data-key="07aa0e918eba40b5acff9f3fee4f19ab53abd0a8">Check</a> <script type="text/javascript" src="http://static.mixi.jp/js/share.js"></script>
+<iframe src="http://www.facebook.com/plugins/like.php?href=http%3A%2F%2Fcentossrv.com%2F&amp;layout=button_count&amp;show_faces=true&amp;width=450&amp;action=like&amp;colorscheme=light&amp;height=21" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:450px; height:21px;" allowTransparency="true"></iframe>
+</div>
+<br>
+<div align=center>
+<table summary="dmy"><tr><td>
+<script type="text/javascript"><!--
+google_ad_client = "pub-8226454717902609";
+/* 728x90, 作成済み 08/08/21 */
+google_ad_slot = "6129685669";
+google_ad_width = 728;
+google_ad_height = 90;
+//-->
+</script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</td></tr>
+<tr><td align="center">
+<script type="text/javascript"><!--
+google_ad_client = "pub-8226454717902609";
+/*  */
+google_ad_slot = "9173163258";
+google_ad_width = 728;
+google_ad_height = 15;
+//-->
+</script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</td></tr></table>
+</div>
+<br>
+<br><div align=right><a href="#top">▲このページのトップへ戻る</a></div>
+<hr>
+<table summary="dmy" align="center">
+<tr>
+<td align="center">
+<a href="http://www.lpi.or.jp/" target="_blank">
+<img src="/img/lpi-lpic2.gif" alt="LPIロゴ" width="40" height="40" border="0">
+</a>
+</td>
+<td align="center">
+Copyright&copy; 2004-2011 fallenangels, All rights reserved.<br>
+<a href="/link.shtml">ご自由にリンクしてください(連絡は不要です)</a>
+</td>
+</tr>
+</table>
+<div align="center">
+<a href="/mail/mail.cgi">本ページへのご意見・ご要望、誤字・脱字・リンク切れ等のご連絡はこちらからお願いします</a>
+</div>
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+var pageTracker = _gat._getTracker("UA-6156018-2");
+pageTracker._trackPageview();
+</script>
+</body>
+</html>
+

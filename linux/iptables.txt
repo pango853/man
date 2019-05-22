@@ -1,0 +1,174 @@
+X. SETUP IPTABLES for Debian
+
+# sudo nano /etc/iptables.sh
+#######################################
+#!/bin/bash
+
+IPTABLESSH="/etc/iptables.sh"
+IPTABLES="/sbin/iptables"
+IPTABLESCONF="/etc/iptables.conf"
+SSHD_CONFIG="/etc/ssh/sshd_config"
+
+if [ ! -x $IPTABLES ]; then
+	echo "$IPTABLES is not permitted!!";exit 1;
+fi
+if [ ! -x $IPTABLES-save ]; then
+	echo "$IPTABLES-save is not permitted!!";exit 1;
+fi
+if [ ! -x $IPTABLES-restore ]; then
+	echo "$IPTABLES-restore is not permitted!!";exit 1;
+fi
+if [ ! -f $SSHD_CONFIG ]; then
+	echo "$SSHD_CONFIG is not found!!";exit 1;
+fi
+
+start(){
+	return 0
+
+	if [ -f $IPTABLECONF ]; then
+		$IPTABLES -F
+		$IPTABLES-restore < $IPTABLESCONF
+	else
+		init
+	fi
+	return 0
+}
+stop(){
+	$IPTABLES-save > $IPTABLESCONF
+	# Basic Policy(ALL PASS)
+	$IPTABLES -P INPUT ACCEPT
+	$IPTABLES -P OUTPUT ACCEPT
+	$IPTABLES -P FORWARD ACCEPT
+	# INITIALISE(-F:ALLCHAIN;-Z:COUNT;-X:USERCHAIN)
+	$IPTABLES -F
+	$IPTABLES -Z
+	$IPTABLES -X
+	return 0
+}
+setup(){
+	# WRITE DOWN CODE
+	TEMP="/etc/network/if-down.d/iptables-down"
+	touch $TEMP
+	echo "#!/bin/sh" > $TEMP
+	echo "$IPTABLESSH stop" >> $TEMP
+	chmod 700 $TEMP
+	# WRITE UP CODE
+	TEMP="/etc/network/if-up.d/iptables-up"
+	touch $TEMP
+	echo "#!/bin/sh" > $TEMP
+	echo "$IPTABLESSH start" >> $TEMP
+	chmod 700 $TEMP
+	return 0
+}
+init(){
+	return 0
+}
+init-testing(){
+	# WARNING this maynot work !!!!!!
+	$IPTABLES -F
+	$IPTABLES -X
+	$IPTABLES -Z
+	$IPTABLES -P INPUT   DROP
+	$IPTABLES -P FORWARD DROP
+	$IPTABLES -P OUTPUT  DROP
+
+	# LOOKBACK
+	$IPTABLES -A INPUT  -i lo -j ACCEPT
+	$IPTABLES -A OUTPUT -o lo -j ACCEPT
+
+	# SSH with Brute Force attack protestion
+	SSHD_LISTEN_PORT=`sed -e 's/^Port\s\+\([0-9]\+\)/\1/p' -e d $MY_SSHD_CONFIG`
+	$IPTABLES -N LOG_SSHBRUTEFORCE
+	$IPTABLES -A LOG_SSHBRUTEFORCE -m limit --limit 3/min --limit-burst 4 -j ACCEPT
+	$IPTABLES -A LOG_SSHBRUTEFORCE -j LOG --log-level info --log-prefix '[IPTABLES SSHBRUTEFORCE] '
+	$IPTABLES -A LOG_SSHBRUTEFORCE -j DROP
+	$IPTABLES -A INPUT -p tcp -m state --state NEW --dport $SSHD_LISTEN_PORT -j LOG_SSHBRUTEFORCE
+
+	# PROTESTIONS
+	## SYN-FLOODING 
+	## Make sure NEW tcp connections are SYN packets
+	## ping of death
+	$IPTABLES -N LOG_PINGDEATH
+	$IPTABLES -A LOG_PINGDEATH -m limit --limit 1/s --limit-burst 4 -j ACCEPT
+	$IPTABLES -A LOG_PINGDEATH -j LOG --log-prefix '[IPTABLES PINGDEATH] '
+	$IPTABLES -A LOG_PINGDEATH -j DROP
+	$IPTABLES -A INPUT -p icmp --icmp-type echo-request -j LOG_PINGDEATH
+	## port scaner
+	$IPTABLES -N LOG_PORTSCAN
+	$IPTABLES -A LOG_PORTSCAN -m limit --limit 1/s --limit-burst 4 -j RETURN
+	$IPTABLES -A LOG_PORTSCAN -j LOG --log-level info --log-prefix '[IPTABLES PORTSCAN] '
+	$IPTABLES -A LOG_PORTSCAN -j DROP
+	$IPTABLES -A INPUT -p tcp --tcp-flags SYN,ACK,FIN,RST RST -j LOG_PORTSCAN
+	## SYN CHECK
+	$IPTABLES  -N LOG_NEWSYNCHECK
+	$IPTABLES  -A LOG_NEWSYNCHECK -j LOG --log-prefix '[IPTABLES NEWSYNCHECK] '
+	$IPTABLES  -A LOG_NEWSYNCHECK -j DROP
+	$IPTABLES  -A INPUT -p tcp ! --syn -m state --state NEW -j LOG_NEWSYNCHECK
+	## SPOOFING
+
+	# DNS
+#	$IPTABLES -A INPUT  -p udp --sport 53 -j ACCEPT
+#	$IPTABLES -A OUTPUT -p udp --dport 53 -j ACCEPT
+#	$IPTABLES -A OUTPUT -p tcp --dport 53 -m state --state NEW -j ACCEPT
+
+	# PING(icmp 0:echo response 8:echo request)
+	$IPTABLES -A INPUT  -p icmp --icmp-type echo-request -j ACCEPT
+	$IPTABLES -A INPUT  -p icmp --icmp-type echo-reply -j ACCEPT
+	$IPTABLES -A OUTPUT -p icmp --icmp-type echo-request -j ACCEPT
+	$IPTABLES -A OUTPUT -p icmp --icmp-type echo-reply -j ACCEPT
+
+	# ACCEPT Packet
+	$IPTABLES -A INPUT  -p tcp -m state --state ESTABLISHED,RELATED -j ACCEPT
+	$IPTABLES -A OUTPUT -p tcp -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+	# SERVICES
+#	$IPTABLES -A INPUT -p tcp -m state --state NEW --dport 21 -j ACCEPT
+#	$IPTABLES -A INPUT -p tcp -m state --state NEW --dport 25 -j ACCEPT
+	$IPTABLES -A INPUT -p tcp -m state --state NEW --dport 80 -j ACCEPT
+	$IPTABLES -A INPUT -p tcp -m state --state NEW --dport 110 -j ACCEPT
+	$IPTABLES -A INPUT -p tcp -m state --state NEW --dport 443 -j ACCEPT
+#	$IPTABLES -A INPUT -p tcp -m state --state NEW --dport 548 -j ACCEPT
+#	$IPTABLES -A INPUT -p tcp -m state --state NEW --dport 587 -j ACCEPT
+
+	# log iptables denied calls
+	$IPTABLES -A INPUT -m limit --limit 1/min -j LOG --log-level debug --log-prefix 'INPUT DENIED:'
+	$IPTABLES -A INPUT -j REJECT
+	$IPTABLES -A FORWARD -m limit --limit 1/min -j LOG --log-level debug --log-prefix 'FORWARD DENIED:'
+	$IPTABLES -A FORWARD -j REJECT
+
+	$IPTABLES-save > $IPTABLESCONF
+	return 0
+}
+
+case "$1" in
+	start)
+		start
+	;;
+	stop)
+		stop
+	;;
+	save)
+		stop
+	;;
+	restore)
+		start
+	;;
+	restart)
+		stop;start
+	;;
+	setup)
+		setup
+	;;
+	init)
+		init
+	;;
+	*)
+		echo "Usage: $0 {start|stop|restart|setup|init}" >&2
+		exit 1
+	;;
+esac
+
+#######################################
+# chmod 700 /etc/init.d/iptables.sh
+
+

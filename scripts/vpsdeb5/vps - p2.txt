@@ -1,0 +1,24 @@
+2. SSHD
+
+# apt-get install ssh
+
+# ssh-keygen -t rsa
+# cat ~/.ssh/id_rsa.pub >> $HOME/.ssh/authorized_keys
+# chmod 600 authorized_keys
+
+Use puttygen.exe to deal with id_rsa and convert to ppk(secret key).
+
+# sudo nano /etc/ssh/sshd_config
+	PasswordAuthentication　no
+	PermitRootLogin no
+	PermitEmptyPassword no
+	#AllowUsers ....
+# sudo /etc/init.d/ssh restart
+OR
+# invoke-rc.d ssh reload
+
+
+TEST
+# ssh -p [ポート番号] localhost #rootは無効化したので、パスワード入れてもログインできなければ成功
+# ssh -p [ポート番号] [一般ユーザアカウント名]@localhost
+OR use psftp.exe in putty

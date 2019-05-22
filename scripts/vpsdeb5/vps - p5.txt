@@ -1,0 +1,189 @@
+5. IPTABLES
+
+# sudo apt-get upgrade iptables
+# dpkg -l iptables
+# /sbin/iptables -L
+# lsmod |grep ip
+# dpkg -l iptables
+
+# sudo nano /etc/init.d/iptables
+	###################
+	#!/bin/bash
+	start(){
+		iptables -F
+		iptables-restore < /etc/iptables.save
+		return 0
+	}
+	stop(){
+		iptables-save > /etc/iptables.save
+		return 0
+	}
+	case "$1" in
+	start)
+	start
+	;;
+	stop)
+	stop
+	;;
+	save)
+	stop
+	;;
+	restore)
+	start
+	;;
+	restart)
+	stop
+	start
+	;;
+	esac
+	###################
+# sudo chmod 755 /etc/init.d/iptables
+# sudo update-rc.d iptables defaults 18
+
+# netstat -anp
+# touch /etc/firewall.sh
+# chmod 700 /etc/firewall.sh
+# vim /etc/firewall.sh
+###########################
+	#! /bin/sh
+
+	LAN=eth0
+	# Get internal netmask
+	LOCALNET_MASK=`ifconfig $LAN|sed -e 's/^.*Mask:\([^ ]*\)$/\1/p' -e d`
+	# Get internal address
+	LOCALNET_ADDR=`netstat -rn|grep $LAN|grep $LOCALNET_MASK|cut -f1 -d' '`
+	LOCALNET=$LOCALNET_ADDR/$LOCALNET_MASK
+	### or you can directly set
+	#LOCALNET=192.168.11.0/255.255.255.0
+	MY_SSHD_CONFIG=/etc/ssh/sshd_config
+
+	/sbin/iptables -F
+	/sbin/iptables -X
+	/sbin/iptables -P INPUT DROP
+	/sbin/iptables -P OUTPUT DROP
+	/sbin/iptables -P FORWARD DROP
+
+	# Loopback
+	/sbin/iptables -A INPUT  -i lo -j ACCEPT
+	/sbin/iptables -A OUTPUT -o lo -j ACCEPT
+
+	# SYN Cookies ON ## also preventing TCP SYN Flood Attack
+	#sysctl -w net.ipv4.tcp_syncookies=1 > /dev/null
+	#sed -i '/net.ipv4.tcp_syncookies/d' /etc/sysctl.conf
+	#echo "net.ipv4.tcp_syncookies=1" >> /etc/sysctl.conf
+
+	# Avoid ping from/to? boardcast address ## preventing Smurf Attack
+	#sysctl -w net.ipv4.icmp_echo_ignore_broadcasts=1 > /dev/null
+	#sed -i '/net.ipv4.icmp_echo_ignore_broadcasts/d' /etc/sysctl.conf
+	#echo "net.ipv4.icmp_echo_ignore_broadcasts=1" >> /etc/sysctl.conf
+
+	# Refuse ICMP Redirect packet
+	#sed -i '/net.ipv4.conf.*.accept_redirects/d' /etc/sysctl.conf
+	#for dev in `ls /proc/sys/net/ipv4/conf/`
+	#do
+	#    sysctl -w net.ipv4.conf.$dev.accept_redirects=0 > /dev/null
+	#    echo "net.ipv4.conf.$dev.accept_redirects=0" >> /etc/sysctl.conf
+	#done
+
+	# Refuse Source Routed packet
+	#sed -i '/net.ipv4.conf.*.accept_source_route/d' /etc/sysctl.conf
+	#for dev in `ls /proc/sys/net/ipv4/conf/`
+	#do
+	#    sysctl -w net.ipv4.conf.$dev.accept_source_route=0 > /dev/null
+	#    echo "net.ipv4.conf.$dev.accept_source_route=0" >> /etc/sysctl.conf
+	#done
+
+	# Avoiding fragemented packet, NetBIOS-related,Dropbox-related logs
+	/sbin/iptables -A INPUT -f -j LOG --log-prefix '[IPTABLES FRAGMENT] : '
+	/sbin/iptables -A INPUT -f -j DROP
+	/sbin/iptables -A INPUT -s ! $LOCALNET -p tcp -m multiport --dports 135,137,138,139,445,17500 -j DROP
+	/sbin/iptables -A INPUT -s ! $LOCALNET -p udp -m multiport --dports 135,137,138,139,445,17500 -j DROP
+	/sbin/iptables -A OUTPUT -d ! $LOCALNET -p tcp -m multiport --sports 135,137,138,139,445,17500 -j DROP
+	/sbin/iptables -A OUTPUT -d ! $LOCALNET -p udp -m multiport --sports 135,137,138,139,445,17500 -j DROP
+
+	# Log continuing pings(>4 times/sec) and drop ## Ping of Death Attack
+	/sbin/iptables -N LOG_PINGDEATH
+	/sbin/iptables -A LOG_PINGDEATH -m limit --limit 1/s --limit-burst 4 -j ACCEPT
+	/sbin/iptables -A LOG_PINGDEATH -j LOG --log-prefix '[IPTABLES PINGDEATH] '
+	/sbin/iptables -A LOG_PINGDEATH -j DROP
+	/sbin/iptables -A INPUT -p icmp --icmp-type echo-request -j LOG_PINGDEATH
+
+	# Port scan Attack
+	/sbin/iptables -N LOG_PORTSCAN
+	/sbin/iptables -A LOG_PORTSCAN -m limit --limit 1/s --limit-burst 4 -j RETURN
+	/sbin/iptables -A LOG_PORTSCAN -j LOG --log-level info --log-prefix '[IPTABLES PORTSCAN] '
+	/sbin/iptables -A LOG_PORTSCAN -j DROP
+	/sbin/iptables -A INPUT -p tcp --tcp-flags SYN,ACK,FIN,RST RST -j LOG_PORTSCAN
+
+	# Illegal packet
+	/sbin/iptables -N LOG_NEWSYNCHECK
+	/sbin/iptables -A LOG_NEWSYNCHECK -j LOG --log-prefix '[IPTABLES NEWSYNCHECK] '
+	/sbin/iptables -A LOG_NEWSYNCHECK -j DROP
+	/sbin/iptables -A INPUT -p tcp ! --syn -m state --state NEW -j LOG_NEWSYNCHECK
+
+	# Avoiding logs for packets of whole host(boardcast addr, multicast addr)
+	/sbin/iptables -A INPUT -d 255.255.255.255 -j DROP
+	/sbin/iptables -A INPUT -d 224.0.0.1 -j DROP
+
+	# Refuse response to 113(IDENT) access, preventing slow mailserver repsonse
+	/sbin/iptables -A INPUT -p tcp --dport 113 -j REJECT --reject-with tcp-reset
+
+	# Accept tcp stream
+	/sbin/iptables -A INPUT  -p tcp -m state --state ESTABLISHED,RELATED -j ACCEPT
+	/sbin/iptables -A OUTPUT -p tcp -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+	# Ping SEND/RECEIVE
+	/sbin/iptables -A INPUT  -p icmp --icmp-type echo-request -j ACCEPT
+	/sbin/iptables -A INPUT  -p icmp --icmp-type echo-reply -j ACCEPT
+	/sbin/iptables -A OUTPUT -p icmp --icmp-type echo-request -j ACCEPT
+	/sbin/iptables -A OUTPUT -p icmp --icmp-type echo-reply -j ACCEPT
+
+	# DNS SEND
+	/sbin/iptables -A INPUT  -p udp --sport 53 -j ACCEPT
+	/sbin/iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
+	/sbin/iptables -A OUTPUT -p tcp --dport 53 -m state --state NEW -j ACCEPT
+
+	# HTTP, HTTPS, POP3(SSL), IMAP, SMTP(TLS/STARTTLS, SSL), git, hkp SEND
+	/sbin/iptables -A OUTPUT -p tcp -m state --state NEW -m multiport --dports 80,443,995,993,587,465,9418,11371 -j ACCEPT
+
+	# HTTP RECEIVE
+	/sbin/iptables -A INPUT -p tcp -m state --state NEW --dport 80 -j ACCEPT
+	# eg. SSH, HTTP, SSL
+	#/sbin/iptables -A INPUT -p tcp  --dport 22,80,443 -j ACCEPT
+	# eg. MySQL, PosgreSQL
+	# /sbin/iptables -A INPUT -p tcp -s $LOCALNET --dport 3306,5432 -j ACCEPT
+
+	# SSH RECEIVE / with Brute Force Attak precaution, get prot from sshd_config 
+	SSHD_LISTEN_PORT=`sed -e 's/^Port\s\+\([0-9]\+\)/\1/p' -e d $MY_SSHD_CONFIG`
+	/sbin/iptables -N LOG_SSHBRUTEFORCE
+	/sbin/iptables -A LOG_SSHBRUTEFORCE -m limit --limit 3/min --limit-burst 4 -j ACCEPT
+	/sbin/iptables -A LOG_SSHBRUTEFORCE -j LOG --log-level info --log-prefix '[IPTABLES SSHBRUTEFORCE] '
+	/sbin/iptables -A LOG_SSHBRUTEFORCE -j DROP
+	/sbin/iptables -A INPUT -p tcp -m state --state NEW --dport $SSHD_LISTEN_PORT -j LOG_SSHBRUTEFORCE
+
+	# DROP IP from deny_ip list
+	#if [ -s /root/deny_ip ]; then
+	#    for ip in `cat /etc/deny_ip`
+	#    do
+	#        /sbin/iptables -I INPUT -s $ip -j DROP
+	#    done
+	#fi
+
+	# Others : log and drop
+	/sbin/iptables -A INPUT -s ! $LOCALNET  -m limit --limit 1/s -j LOG --log-prefix '[IPTABLES NOMATCHINPUT] '
+	# save setting
+	#/etc/init.d/iptables save active
+	# /etc/rc2.d (boot time) link iptables 
+	# update-rc.d iptables defaults
+#################################################
+# ln -s /etc/firewall.sh /etc/network/if-pre-up.d/iptables
+
+OR
+# iptables --list
+# iptables-save > /etc/firewall.conf
+# echo "#!/bin/sh" > /etc/network/if-up.d/iptables 
+# echo "iptables-restore < /etc/firewall.conf" >> /etc/network/if-up.d/iptables 
+# chmod +x /etc/network/if-up.d/iptables 
+
+YOU can use LinuxFirewall in Webmin to confirm if you have it.
+

@@ -1,0 +1,98 @@
+
+
+http://o7planning.org/en/10137/building-java-osgi-project-with-maven-and-tycho
+
+###. Examples
+
+#. Example 1
+0. Install Tycho into Eclipse
+   Windows > Preferences > Maven > Discovery > Open Catalog, find with kw tycho and install Tycho Configurator.
+1. Create OSGI Project
+   Create Plug-in Project with "standard" OSGi framework target platform, activator and without template.
+   Modify the Activator.java to show something to stdout.
+2. Run OSGI
+   Add org.eclipse.osgi,org.eclipse.equinox.console, org.apache.felix.gogo.command, org.apache.felix.gogo.runtime, org.apache.felix.gogo.shell as dependencies.
+   And "Run As / Run Configuration ..", choose New OSGi Framwork, set Workspace bundle without Trarget Platform and click apply first.
+   After applied, check Add Required Bundles and check Only show selected and apply and Run.
+3. Create Maven Project
+   Create a maven simple project and just add any class with a utility method. e.g CheckNumeric
+4. Create Parent Project
+   Create a common Java Project for configuring Maven & Tycho to build the above two projects.
+5. Configure Maven & Tycho
+   First convert OSGI project into Maven Project with "eclipse-plugin" as packaging.
+   Match MAINIFEST.MF version(A.B.C-qualifier) with pom.xml version(A.B.C-SNAPSHOT) and add <parent> to pom.xml with <relativePath>../ParentProject/pom.xml</relativePath>.
+   Also add such <parent> to the Maven Project created above.
+   
+   Finally convert parent project to Maven Project with packaging as "pom" and add below to its pom.xml
+		<properties>
+			<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+			<!-- 0.22.0 : Target location type: Directory is not supported -->
+			<tycho-version>0.26.0</tycho-version>
+		</properties>
+	  
+		<repositories>
+			<!-- Select the P2 repository to be used when resolving dependencies -->
+			<repository>
+				<id>eclipse-mars</id>
+				<layout>p2</layout>
+				<url>http://download.eclipse.org/releases/mars</url>
+			</repository>
+		</repositories>
+		<pluginRepositories>
+			<pluginRepository>
+				<id>tycho-snapshots</id>
+				<url>https://oss.sonatype.org/content/groups/public/</url>
+			</pluginRepository>
+		</pluginRepositories>
+		<build>
+			<plugins>
+				<plugin>
+					<!-- enable tycho build extension -->
+					<groupId>org.eclipse.tycho</groupId>
+					<artifactId>tycho-maven-plugin</artifactId>
+					<version>${tycho-version}</version>
+					<extensions>true</extensions>
+					<configuration>
+						<dependency-resolution>
+							<optionalDependencies>ignore</optionalDependencies>
+						</dependency-resolution>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.eclipse.tycho</groupId>
+					<artifactId>tycho-versions-plugin</artifactId>
+					<version>${tycho-version}</version>
+					<configuration>
+						<dependency-resolution>
+							<optionalDependencies>ignore</optionalDependencies>
+						</dependency-resolution>
+					</configuration>
+				</plugin>
+				<!-- plugin>
+					<groupId>org.eclipse.tycho</groupId>
+					<artifactId>target-platform-configuration</artifactId>
+					<version>${tycho-version}</version>
+					<configuration>
+						<target>
+							<artifact>
+								<groupId>com.pangochan.tryosgi</groupId>
+								<artifactId>targetplatform</artifactId>
+								<version>1.0.0</version>
+							</artifact>
+						</target>
+					</configuration>
+				</plugin-->
+			</plugins>
+		</build>
+	 
+		<modules>  
+			<module>../simplemaven</module>
+			<module>../SimpleOSGi</module>	  
+		</modules>   
+
+   ALso install m2e connector "Tycho Configurator" if you got the following error.
+    "Plugin execution not covered by lifecycle configuration: org.eclipse.tycho:tycho-packaging-plugin"
+
+6. Configuring & BuildinG
+   Right-click Parent project and Run As / Maven Install.
+

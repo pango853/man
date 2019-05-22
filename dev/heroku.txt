@@ -1,0 +1,9 @@
+
+
+
+heroku login
+
+#. How to stop an app
+heroku maintenance:on -a my-testbot
+heroku maintenance:off -a my-testbot
+

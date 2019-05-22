@@ -1,0 +1,61 @@
+4. SSL
+
+無料 SSL 証明書 StartSSL を使う
+http://futuremix.org/2009/02/startssl
+ただし、上記サイトの Apache の設定例では中間CA証明書の設定が行われていないので、
+イマドキの Firefox だと警告が出る。Apache で設定する場合は SSLCertificateChainFile 
+に Class 1 Intermediate Server CA をダウンロードしたファイルを設定して置かなけれ
+ばいけないので注意。
+で、同じような理由から nginx でも中間CA証明書を割り当てないといけないのだが、これ
+に関しては単に証明書を連結するだけでうまく認識してくれるようなので以下のようにする。
+
+この証明書は無料ながら主要ブラウザは大体サポートしている
+
+cd ~/src
+wget https://www.startssl.com/certs/sub.class1.server.ca.pem
+cat sub.class1.server.ca.pem >> ssl.crt
+openssl rsa -in ssl.key -out ssl_no_passphrase.key
+
+server {
+  listen 443;
+  #～色々省略～
+  ssl on;
+  ssl_certificate /path/to/ssl.crt;
+  ssl_certificate_key /path/to/ssl_no_passphrase.key;
+}
+
+http://www.sslshopper.com/ssl-checker.html
+
+
+5. Debian に daemontools をインストール 
+apt-get install daemontools daemontools-run
+invoke-rc.d nginx stop
+update-rc.d -f nginx remove
+pushd /etc/service
+mkdir nginx
+pushd nginx
+vim run
+	#!/bin/sh
+	exec 2>&1
+	exec /usr/local/sbin/nginx -c /usr/local/nginx/nginx.conf -g 'daemon off;'
+chmod 700 run
+svc -u /etc/service/nginx
+ps ax | grep nginx\\:
+
+vim /etc/php5/fpm/php5-fpm-daemontools.conf
+	daemonize = no
+	include = /etc/php5/fpm/php5-fpm.conf
+invoke-rc.d php5-fpm stop
+update-rc.d -f php5-fpm remove
+popd
+mkdir php5-fpm
+pushd php5-fpm
+vim run
+#!/bin/sh
+exec 2>&1
+exec /usr/bin/php5-fpm --fpm-config /etc/php5/fpm/php5-fpm-daemontools.conf
+chmod 700 run
+svc -u /etc/service/php5-fpm
+
+
+(略). Debian に HAProxy をインストール 
