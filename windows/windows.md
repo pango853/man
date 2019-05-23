@@ -219,3 +219,6 @@ If you decide to create a .REG file to add or edit Dos devices, add a second bac
 
 ## How does Run dialog locate executables?
 > HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths
+
+## Enable Hyper-V
+> bcdedit /set hypervisorlaunchtype auto
