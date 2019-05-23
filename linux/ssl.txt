@@ -1,0 +1,211 @@
+http://thinkit.co.jp/cert/article/0706/3/7/2.htm
+http://infoscoopjp.wordpress.com/2012/03/30/centos%E3%81%AE%E8%87%AA%E5%B7%B1%E8%AA%8D%E8%A8%BC%E5%B1%80%E3%81%A7%E8%A8%BC%E6%98%8E%E6%9B%B8%E3%82%92%E7%99%BA%E8%A1%8C%E3%81%99%E3%82%8B%E6%96%B9%E6%B3%95/
+http://blog.robata.org/arcive/doc-openssl/doc-openssl-selfca.html
+自己認証局
+
+Debian篇
+１．openssl.cnf を認証局用に作成する
+# cp /etc/ssl/openssl.cnf /etc/ssl/openssl_server.cnf 
+# vim /etc/ssl/openssl_server.cnf
+	　　　;;
+	####################################################################
+	[ ca ]
+	default_ca      = CA_default            # The default ca section
+
+
+	####################################################################
+	[ CA_default ]
+
+
+	# dir          = ./demoCA
+	dir           = /etc/ssl/CA         # Where everything is kept
+	certs           = $dir/certs            # Where the issued certs are kept
+	crl_dir         = $dir/crl              # Where the issued crl are kept
+	database        = $dir/index.txt        # database index file.
+	#unique_subject = no                    # Set to 'no' to allow creation of
+	   ;;
+	   ;;
+	default_days=3650                     # several ctificates with same subject.
+	   ;;
+	   ;;
+	# For the CA policy
+	[ policy_match ]
+	countryName             = match
+	stateOrProvinceName     = optional
+	organizationName        = match
+	     ::
+	[ req_distinguished_name ]
+	countryName                     = Country Name (2 letter code)
+	countryName_default             = JP
+	countryName_min                 = 2
+	countryName_max                 = 2
+
+	stateOrProvinceName             = State or Province Name (full name)
+	stateOrProvinceName_default     = Tokyo
+
+	localityName                    = oote-machi 1,Chiyodaku-ku
+
+	0.organizationName              = Organization Name (eg, company)
+	0.organizationName_default      = Hogehoge corp. 
+	      
+	organizationalUnitName          = Organizational Unit Name (eg, section)
+	#organizationalUnitName_default =
+	   ;;
+	   ;;
+	emailAddress                    = Email Address
+	emailAddress_max                = 64     ::
+	   ;;
+	[ usr_cert ]
+	basicConstraints=CA:FALSE
+	nsCertType      = server
+	　　　;;
+openssl.cnfの「basicConstraints」「nsCertType」と違うことに注意してください。　
+
+２．CA作成スクリプトとの実行
+	# vim /usr/lib/ssl/misc/CA.sh # CA.shを変更. CentOSは/etc/pki/tls/misc/CA
+	# DAYS="-days 365"      # 1 year
+	# CADAYS="-days 1095"   # 3 years
+	DAYS="-days 3650"    # 10 year
+	CADAYS="-days 7300"  #  20 years
+	REQ="$OPENSSL req $SSLEAY_CONFIG"
+	CA="$OPENSSL ca $SSLEAY_CONFIG"
+	VERIFY="$OPENSSL verify"
+	X509="$OPENSSL x509"
+
+	# CATOP=./demoCA
+	CATOP=/etc/ssl/CA
+	CAKEY=./cakey.pem
+	CAREQ=./careq.pem
+	CACERT=./cacert.pem
+
+(Debian,Ubuntuの場合)
+$ sudo mkdir /etc/ssl/CA
+$ sudo /usr/lib/ssl/misc/CA.sh -newca
+
+(Redhat,CentOSの場合）
+# mkdir /etc/ssl/CA
+# /etc/pki/tls/misc/CA -newca 
+
+!! Common Name(ここでは"ca.example.jp"）は、必ずDNSに登録されている名前を指定してください。
+
+作成したCAの証明書の内容は以下のコマンドで確認できます。
+(Debian,Ubuntuの場合）
+$ sudo openssl x509 -in /etc/ssl/CA/cacert.pem -text
+
+(Redhat,CentOSの場合）
+# openssl x509 -in /etc/ssl/CA/cacert.pem -text
+
+■Windows用のCAの証明書（DER形式の証明書)の作成方法
+$ sudo openssl x509 -inform pem -in /etc/ssl/CA/cacert.pem -outform der -out /etc/ssl/CA/cacert.cer
+
+これで作成された"cacert.cer"ファイルをWindows側でルート証明書としてインポートすれば、以後はこの自己認証局で証明されたサーバ証明書は、信頼された認証局のものとして扱われます。
+イ ンポートは、[コントロールパネル]－[インターネットオプション]－[コンテン ツ]－[証明書]－[信頼されたルート証明書]タブを開き、[インポート]ボタンを選択します。インポートするファイルとして cacert.cer を指定します。証明書を配置する場所を確認してくるので、「証明書をすべて次のストアに配置する」を選択して「信頼されたルート証明機関」を選びます
+ なお、WebブラウザにFirefoxを利用する場合、ルート証明書の管理はFirefox自体で行っているので、Firefoxの[ツール]ー[オプショ ン]ー[詳細]で[暗号化]ー[証明書を表示]を選択して、同じようにルート証明書としてインポートを実行してください。
+
+３．署名要求書に署名する手続き
+$ sudo openssl ca -config /etc/ssl/openssl_server.cnf -in csrファイル名 -keyfile /etc/ssl/CA/private/cakey.pem -cert /etc/ssl/CA/cacert.pem -out server.pem
+
+
+サーバ側
+
+サーバの秘密鍵を作成する
+mkdir /etc/ssl/SERVER
+chmod 600 /etc/ssl/SERVER
+
+openssl genrsa -rand 適当なFile -des3 -out serverkey.pem 1024
+又は
+openssl genrsa -des3 -out serverkey.pem 1024
+
+パスフレーズを解除
+openssl rsa -in serverkey.pem -out servernopasskey.pem
+
+認証局への署名要求書(CSR,申請書)を作成する
+openssl req -new -days 365 -key serverkey.pem -out csr.pem
+	Country Name (2 letter code)[AU]:　【JP:国名】
+	State or Province Name (full name)[Some-State]:【Tokyo:都道府県名】
+	Locality Name (eg, city)[]:【Chofu-shi:市区町村】
+	Organization Name(eg, company)[Internet Widgits Pty Ltd]:【bnote:組織名(法人名)】
+	Organization Unit Name (eg, section)[]:【System:部署名】
+	Common Name (eg, your name or your server's hostname)[]:【bnote.sample.jp:サーバのホスト名(FQDN)等】
+	Email Address []:【master@sample.jp:メールアドレス】
+
+サーバ証明書の作成
+cd /etc/ssl/CA
+openssl ca -in /etc/ssl/SERVER/csr.pem -keyfile private/cakey.pem -cert cacert.pem -out /etc/ssl/SERVER/cert.pem
+
+apacheで使用する
+SSLEngine on
+SSLCertificateFile　/etc/ssl/SERVER/cert.pem
+SSLCertificateKeyFile　/etc/ssl/SERVER/servernopasskey.pem
+
+
+CentOS
+1. 自己認証局(CA)の構築
+$ cd /etc/pki/tls/misc/
+$ ./CA –newca
+
+２．サーバーの署名要求証明書(CSR)の作成
+$ yum install mod_ssl
+$ cd /etc/httpd
+$ mkdir ssl
+$ cd ssl
+$ openssl genrsa -des3 -out ./key.pem 1024
+
+(3). 証明書署名要求（CSR）の作成
+$ openssl req -new -key ./key.pem -out ./csr.pem
+
+３．自己認証局によるCSRへの署名
+ $ cd /etc/pki/tls/misc
+ $ openssl ca -out /etc/pki/CA/certs/cert.pem -infiles /etc/httpd/ssl/csr.pem 
+
+/etc/httpd/ssl/key.pem
+/etc/httpd/ssl/cert.pem
+
+$ cp /etc/pki/CA/certs/cert.pem /etc/httpd/ssl/
+
+$ vi /etc/httpd/conf.d/ssl.conf
+
+SSLCertificateFile /etc/httpd/ssl/cert.pem
+SSLCertificateKeyFile /etc/httpd/ssl/key.pem
+
+$ service httpd restart
+
+
+Webサーバの公開鍵の作成(CSRファイル生成)
+# openssl req -new -key server.key > server.csr
+
+デジタル証明書の作成(鍵・証明書の設定)
+# openssl x509 -in server.csr -days 365 -req -signkey server.key > server.crt
+パスフレーズが解除
+# openssl rsa -in server.key_bk > server.key
+
+、「/usr/share/doc/apache2.2-common/examples/apache2/extra/」の配下の「httpd-ssl.conf.gz」がssl設定ファイルのサンプルになります。「httpd-ssl.conf.gz」を「/etc/apache2/sites-available/」にコピー・解凍し、「ssl」という名前に変更してください。
+SSLCertificateFile デフォルトのデジタル証明書パス SSLCertificateFile 皆さんが生成したデジタル証明書パス 
+SSLCertificateKeyFile デフォルトの秘密鍵パス SSLCertificateKeyFile皆さんが生成した秘密鍵のパス 
+
+
+
+
+
+
+秘密鍵の内容を確認
+ openssl rsa -in key.pem -text
+
+
+CSRの内容を確認
+ openssl req -inform der -in req.der -text
+ openssl req -in req.pem -text
+
+
+証明書の内容を確認
+ openssl x509 -inform der -in cer.der -text
+ openssl x509 -in cer.pem -text
+
+
+CRLの内容を確認
+ openssl crl -inform der -in crl.der -text
+ openssl crl -in crl.pem -text
+
+
+
+

@@ -1,0 +1,108 @@
+
+#queue_directory = /var/spool/postfix
+#command_directory = /usr/sbin
+#	daemon_directory = /usr/lib/postfix
+mail_owner = postfix
+inet_interfaces = all
+inet_protocols  =ipv4
+sendmail_path = /usr/sbin/sendmail.postfix
+newaliases_path = /usr/bin/newaliases.postfix
+mailq_path = /usr/bin/mailq.postfix
+setgid_group = postdrop
+
+myhostname = kuee.info
+mydomain = kuee.info
+myorigin = $mydomain
+mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
+mynetworks = 127.0.0.0/8 [::1]/128
+#mail_spool_directory = /var/spool/mail
+home_mailbox = Maildir/
+#disable_vrfy_command = yes
+#show_user_unknown_table_name = no
+alias_maps = hash:/etc/postfix/db/aliases
+#             hash:/var/spool/ml/etc/mail/aliases
+#             hash:/var/spool/ml/no-ip/etc/mail/aliases
+#             hash:/var/spool/ml/dyndns/etc/mail/aliases
+#alias_database = hash:/etc/postfix/db/aliases
+#transport_maps = hash:/etc/postfix/db/transport
+#header_checks = regexp:/etc/postfix/header_checks
+#body_checks = regexp:/etc/postfix/body_checks
+
+relayhost = 
+#relay_domains = mysql:/etc/postfix/mysql/relay_domains_maps.cf
+
+### virtual settings ###
+#local_transport = local
+virtual_transport = virtual
+virtual_mailbox_base = /home/postman
+virtual_mailbox_domains = hash:/etc/postfix/db/vdomain
+virtual_mailbox_maps = hash:/etc/postfix/db/vmaildir
+virtual_alias_maps = hash:/etc/postfix/db/valiases
+#                     hash:/var/spool/ml/no-ip/etc/postfix/virtual
+#                     hash:/var/spool/ml/dyndns/etc/postfix/virtual
+virtual_alias_domains = $virtual_mailbox_maps
+#### useradd -s /sbin/nologin -g postman -d /home/postman postman
+#### groupadd -g 1001 postman
+virtual_minimum_uid = 1001
+virtual_uid_maps = static:1001
+virtual_gid_maps = static:1001
+
+message_size_limit = 10485760
+mailbox_size_limit = 104857600
+delay_warning_time = 12h
+
+### soft quota settings ###
+virtual_mailbox_limit = 104857600
+virtual_overquota_bounce = yes
+virtual_mailbox_limit_override = yes
+
+### SMTP ref:/usr/share/doc/postfix-2.1.5/README-Postfix-SASL-RedHat.txt
+lmtp_sasl_auth_enable = no
+
+smtp_sasl_auth_enable = no
+#smtp_sasl_password_maps = mysql:/etc/postfix/mysql/vmailbox-maps.cf
+
+smtpd_use_tls = no
+smtpd_sasl_auth_enable = yes
+smtpd_sasl_type = dovecot
+smtpd_sasl_path = /var/spool/postfix/private/auth
+#smtpd_sasl_security_options = noanonymous, noplaintext
+smtpd_sasl_security_options = noanonymous
+smtpd_banner = CUBE Post Office.
+#smtp_sasl_security_options = noanonymous, noplaintext
+smtp_sasl_security_options = noanonymous
+#smtp_sasl_local_domain = #dont write anything
+smtpd_recipient_restrictions =
+	permit_mynetworks
+	permit_sasl_authenticated
+	reject_unauth_destination
+	reject_unauth_pipelining
+	reject_invalid_hostname
+	reject_rbl_client bl.spamcop.net
+smtpd_sender_restrictions =
+	permit_sasl_authenticated
+	permit_mynetworks
+smtpd_client_restrictions =
+	permit_mynetworks
+	reject_rbl_client relays.ordb.org
+	reject_rbl_client sbl.spamhaus.org
+	permit
+smtpd_helo_required = no
+smtpd_helo_restrictions = permit
+
+broken_sasl_auth_clients=yes
+
+### Mailman reg:www/mailman-install/node12.html / fml
+allow_mail_to_commands = alias,forward,include
+
+### TLS
+#smtp_use_tls = yes
+#smtpd_use_tls = yes
+#smtp_tls_note_starttls_offer = yes
+#smtpd_tls_key_file = /etc/ssl/postfix/smtpd.pem
+#smtpd_tls_cert_file = /etc/ssl/postfix/smtpd.pem
+#smtpd_tls_CAfile = /etc/ssl/postfix/smtpd.pem
+#smtpd_tls_loglevel = 0
+#smtpd_tls_received_header = yes
+#smtpd_tls_session_cache_timeout = 3600s
+#tls_random_source = dev:/dev/urandom

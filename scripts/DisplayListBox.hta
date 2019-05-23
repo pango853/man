@@ -1,0 +1,53 @@
+<head>
+<!--
+'********************************************************************
+ '*
+ '*  ファイル:         DisplayListBox.hta
+ '*  作成者:        Ed Wilson
+ '*  作成日:      2009/8/21
+ '*  バージョン:      1.0
+ '*
+ '*  説明:   テキスト ファイルを読み取って、リスト ボックスを作成します。
+'*
+ '* 依存関係:   テキスト ファイルのパスを変更する必要があります。
+'* HSG-08-31-09
+ '********************************************************************
+ -->
+<title>HTA List Box</title>
+ <HTA:APPLICATION 
+      ID="ListBox" 
+     APPLICATIONNAME="HTAListBox"
+      SCROLL="yes"
+     SINGLEINSTANCE="yes"
+ >
+ </head>
+
+<SCRIPT LANGUAGE="VBScript">
+
+Sub Window_Onload
+   LoadListBox
+ End Sub
+
+Sub LoadListBox
+    ForReading = 1
+    strNewFile = "c:\FSO\ItemList.txt"
+     Set objFSO = CreateObject("Scripting.FileSystemObject")
+     Set objFile = objFSO.OpenTextFile _
+        (strNewFile, ForReading)
+     strItems = objFile.ReadAll
+       objFile.Close
+        arrItems = Split(strItems,vbNewLine)
+        For Each stritem in arrItems
+          Set objOption = Document.createElement("OPTION")
+          objOption.Text = strItem
+          objOption.Value = strItem
+          Items.Add(objOption)
+       Next
+ End Sub
+</SCRIPT>
+
+<body>
+
+<select name="Items"></select>
+
+</body>

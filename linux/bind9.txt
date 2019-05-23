@@ -1,0 +1,43 @@
+
+statistics-file "/var/named/data/named_stats.txt";
+
+        allow-update {
+           192.168.1.0/24;
+        };
+
+chown named:named /var/named/*.zone
+vi /etc/named.conf
+	loggingを有効化
+
+tail -f /var/log/named/default.log
+
+
+別のターミナルを起動して以下を確認
+
+# nsupdate
+	update add client.test.atom.local 120 A 192.168.86.204
+	send
+	※こんな感じでcommon系を人通り登録する
+
+# nsupdate
+	update delete client.test.atom.local A
+	send
+	update add dnsclient.test.atom.local 120 A 192.168.86.204
+	send
+
+
+/etc/init.d/named restart
+※この時点でjnlから設定に書き込み。
+
+/var/named/test.atom.local.zone
+にAレコードが追加されたことを確認できたら完璧。
+
+
+特に問題なかったら、
+vi /etc/named.conf
+	loggingを無効化
+
+
+https://ngyuki.hatenablog.com/entry/20120725/p1
+
+

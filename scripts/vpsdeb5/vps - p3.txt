@@ -1,0 +1,265 @@
+FIRST
+# mkdir /home/pango/log
+# sudo chown root:root /home/pango/log
+# mkdir /home/pango/public_html
+# sudo chown root:root /home/pango/public_html
+
+
+3.1 NGINX + PHP + SQLite
+# sudo /etc/init.d/apache2 stop
+# sudo /usr/sbin/update-rc.d -f apache2 remove
+# sudo apt-get remove apache2 apache2-doc apache2-mpm-prefork apache2-suexec apache2-utils apache2.2-common libapache-ruby1.8 libapache2-mod-fcgid libapache2-mod-php5 libapache2-mod-ruby libapache2-mod-suphp
+
+# sudo aptitude install gcc autoconf automake
+# sudo aptitude install libpcre3 libpcre3-dev libpcrecpp0 libssl-dev zlib1g-dev
+
+# mkdir ~/src; cd ~/src
+# wget http://nginx.org/download/nginx-0.8.54.tar.gz
+# tar -zxvf nginx-0.8.54.tar.gz
+# cd nginx-0.8.54
+# ./configure --user=www-data --group=www-data --sbin-path=/usr/local/sbin --conf-path=/usr/local/nginx/nginx.conf --pid-path=/usr/local/nginx/logs/nginx.pid --with-http_ssl_module
+# make
+# sudo make install
+
+# sudo wget -O /etc/init.d/nginx http://www.debianadmin.com/images/nginx
+OR 
+# sudo vi /etc/init.d/nginx
+	################################
+	#! /bin/sh
+	### BEGIN INIT INFO
+	# Provides:          nginx
+	# Required-Start:    $all
+	# Required-Stop:     $all
+	# Default-Start:     2 3 4 5
+	# Default-Stop:      0 1 6
+	# Short-Description: starts the nginx web server
+	# Description:       starts nginx using start-stop-daemon
+	### END INIT INFO
+
+	PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+	DAEMON=/usr/local/sbin/nginx
+	NAME=nginx
+	DESC=nginx
+
+	test -x $DAEMON || exit 0
+
+	# Include nginx defaults if available
+	if [ -f /etc/default/nginx ] ; then
+	        . /etc/default/nginx
+	fi
+
+	set -e
+
+	case "$1" in
+	  start)
+	        echo -n "Starting $DESC: "
+	        start-stop-daemon --start --quiet --pidfile /usr/local/nginx/logs/$NAME.pid \
+	                --exec $DAEMON -- $DAEMON_OPTS
+	        echo "$NAME."
+	        ;;
+	  stop)
+	        echo -n "Stopping $DESC: "
+	        start-stop-daemon --stop --quiet --pidfile /usr/local/nginx/logs/$NAME.pid \
+	                --exec $DAEMON
+	        echo "$NAME."
+	        ;;
+
+	  restart|force-reload)
+	        echo -n "Restarting $DESC: "
+	        start-stop-daemon --stop --quiet --pidfile \
+	                /usr/local/nginx/logs/$NAME.pid --exec $DAEMON
+	        sleep 1
+	        start-stop-daemon --start --quiet --pidfile \
+	                /usr/local/nginx/logs/$NAME.pid --exec $DAEMON -- $DAEMON_OPTS
+	        echo "$NAME."
+	        ;;
+	  reload)
+	      echo -n "Reloading $DESC configuration: "
+	      start-stop-daemon --stop --signal HUP --quiet --pidfile 
+	/usr/local/nginx/logs/$NAME.pid \
+	          --exec $DAEMON
+	      echo "$NAME."
+	      ;;
+	  *)
+	        N=/etc/init.d/$NAME
+	        echo "Usage: $N {start|stop|restart|reload|force-reload}" >&2
+	        exit 1
+	        ;;
+	esac
+
+	exit 0
+	##################################
+
+# sudo chmod 755 /etc/init.d/nginx
+# sudo invoke-rc.d nginx start
+# echo "test"; wget -O - http://localhost/
+# sudo /usr/sbin/update-rc.d -f nginx defaults
+
+# sudo apt-get install php5-cgi php5-mysql php5-curl php5-gd php5-idn php-pear php5-imagick php5-imap php5-mcrypt php5-memcache php5-mhash php5-ming php5-ps php5-pspell php5-recode php5-snmp php5-sqlite php5-tidy php5-xmlrpc php5-xsl php5-json
+# sudo aptitude install php5-cli php5-cgi php5-gd spawn-fcgi
+
+# cd ~/src; sudo wget http://www.lighttpd.net/download/spawn-fcgi-1.6.3.tar.gz
+# tar -xf spawn*
+# cd spawn*
+# ./configure
+# make
+# sudo cp src/spawn-fcgi /usr/bin/
+
+# cd ~/src; wget https://library.linode.com/web-servers/nginx/php-fastcgi/reference/php-fastcgi-deb.sh
+# sudo cp php-fastcgi-deb.sh /usr/bin/php-fastcgi
+# sudo chmod +x /usr/bin/php-fastcgi
+
+# wget https://library.linode.com/web-servers/nginx/php-fastcgi/reference/php-fastcgi-init-deb.sh
+# sudo cp php-fastcgi-init-deb.sh /etc/init.d/php-fastcgi
+# sudo chmod +x /etc/init.d/php-fastcgi
+
+# sudo update-rc.d php-fastcgi defaults
+# sudo /etc/init.d/php-fastcgi start
+
+HINT(kill):# netstat -tpan |grep "LISTEN"|grep :9000; 
+	   # pus -aux | grep :9000
+	   # kill -9 (PID)
+
+# sudo nano /usr/local/nginx/conf/nginx.conf
+	(just part of it)
+	user www-data www-data;
+	worker_processes  5;
+
+	http{
+		sendfile        on;
+		tcp_nopush     on;
+		keepalive_timeout  65;
+		tcp_nodelay        on;
+		gzip  on;
+
+		include sites-enabled/*;
+		# ...
+	}
+
+# mkdir sites-avaliable
+# mkdir sites-enabled
+# nano sites-avaliable/pango.conf
+	server {
+	        listen   80;
+	        server_name www.kuee.info kuee.info;
+	        access_log /home/pango/log/access.log;
+	        error_log /home/pango/log/error.log;
+	        location / {
+	                root   /home/pango/public_html;
+	                index  index.php index.html index.htm;
+	        }
+	        location ~ \.php$ {
+	                include        fastcgi_params;
+	                fastcgi_pass   127.0.0.1:9000;
+	                fastcgi_index  index.php;
+	                fastcgi_param  SCRIPT_FILENAME  /home/pango/public_html$fastcgi_script_name;
+			# maybe you can just set 
+			# root /home/pango/public_html
+	        }
+		location ~ /\.ht {
+			deny all;
+		}
+		location ~ /\.git {
+			deny all;
+		}
+	}
+# ln -s sites-avaliable/pango.conf sites-enabled/pango.conf
+# sudo /etc/init.d/nginx restart
+
+# sudo apt-get install sqlite3 libsqlite3-ruby
+OR you can gem install sqlite3-ruby in rails
+
+# php -i | grep sqlite
+# sqlite3
+
+# for apache2
+# nano /etc/php5/apache2/php.ini
+	extension=sqlite.so
+
+3.2 APACHE + php + mysql
+
+# sudo apt-get install apache2 apache2.2-common apache2-doc apache2-mpm-prefork apache2-utils libexpat1 apache2-suexec
+# sudo apt-get install ssl-cert libapache2-mod-php5 php5 php5-common php5-gd php5-mysql php5-imap
+# sudo apt-get install php5-cli php5-cgi libapache2-mod-fcgid php-pear php-auth php5-mcrypt mcrypt php5-imagick imagemagick libapache2-mod-suphp libapache2-mod-ruby
+
+# a2enmod suexec rewrite ssl actions include
+# a2enmod dav_fs dav auth_digest
+# /etc/init.d/apache2 restart
+
+# vi /etc/apache2/sites-enabled/pango.conf
+
+# apt-get install apache2 php5 mysql-server php5-mysql libapache2-mod-php5 php5-gd
+# aptitude install php5-mysql php5-curl php5-gd php5-idn php-pear php5-imagick php5-imap php5-mcrypt php5-memcache php5-mhash php5-ming php5-ps php5-pspell php5-recode php5-snmp php5-sqlite php5-tidy php5-xmlrpc php5-xsl php5-json
+# aptitude install mysql-server mysql-client
+
+mysql root:#wersdf22234#
+
+# vi /etc/mysql/my.cnf
+	[mysql]
+	default-character-set = utf8
+
+# /usr/bin/mysqladmin -u root password 'new-password'
+# mysql -u root -p
+
+# CREATE USER pango IDENTIFIED BY '#34vh2oke7i!';
+
+# CREATE DATABASE kuee;
+# GRANT ALL PRIVILEGES ON kuee.* TO pango@localhost IDENTIFIED BY '#34vh2oke7i!';
+
+You can remove like 
+# REVOKE ALL PRIVILEGES ON `kuee`.* FROM fyz@localhost; 
+
+
+# vi /etc/php5/apache2/php.ini
+	extension=mysql.so
+	magic_quotes_gpc = Off
+	default_charset  = UTF8
+	mbstring.language = Japanese
+	mbstring.internal_encoding = UTF-8
+	mbstring.http_input  = auto
+	mbstring.http_output = UTF-8
+	mbstring.encoding_translation = On
+	mbstring.detect_order = auto
+	mbstring.substitute_character = none
+	mbstring.func_overload = 0
+# mysqladmin -u root password "yourpassword"
+# /etc/init.d/apache2 restart
+# /etc/init.d/mysql restart	
+
+#NameVirtualHost *
+
+<VirtualHost *:80>
+        ServerAdmin progsiter@gmail.com
+        ServerName kuee.info
+        DocumentRoot /home/pango/public_html
+        <Directory />
+                Options FollowSymLinks
+                AllowOverride None
+        </Directory>
+        <Directory /home/pango/public_html>
+                Options -Indexes FollowSymLinks MultiViews
+                AllowOverride None
+                Order allow,deny
+                allow from all
+        </Directory>
+#       ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/
+#       <Directory "/usr/lib/cgi-bin">
+#               AllowOverride None
+#               Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch
+#               Order allow,deny
+#               Allow from all
+#       </Directory>
+        ErrorLog /home/pango/log/apache2-error.log
+        # Possible values include: debug, info, notice, warn, error, crit,
+        # alert, emerg.
+        LogLevel warn
+        CustomLog /home/pango/log/apache2-access.log combined
+#    Alias /doc/ "/usr/share/doc/"
+#    <Directory "/usr/share/doc/">
+#        Options Indexes MultiViews FollowSymLinks
+#        AllowOverride None
+#        Order deny,allow
+#        Deny from all
+#        Allow from 127.0.0.0/255.0.0.0 ::1/128
+#    </Directory>
+</VirtualHost>

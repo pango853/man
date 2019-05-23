@@ -1,0 +1,125 @@
+﻿
+adb tcpip 5555
+adb shell netcfg
+adb connect 192.168.86.205:5555
+adb connect 192.168.86.204:5555
+
+
+
+#. Nougat on Nexus 7 3G (2012) - tilapia
+adb push E:\PLAY\AndroidROM\Nexus7-tilapia\aosp_tilapia-7.1.2-ota-eng-20171208.ds.zip /sdcard
+adb push E:\PLAY\AndroidROM\Nexus7-tilapia\BeansGapps-Mini-7.1.x-20170725.zip /sdcard
+adb push E:\PLAY\AndroidROM\SuperSU-v2.82-201705271822.zip /sdcard
+
+adb reboot bootloader
+// OR 電源を切り、音量-ボタンと同時押しするか
+
+GOTO Device Manager > Other device > Android ... install driver -> 
+
+//OPTIONAL fastboot oem unlock
+
+fastboot flash recovery E:\PLAY\AndroidROM\Nexus7-tilapia\twrp-3.2.1-0-tilapia.img
+START: Start -> Recovery Mode
+WIPE: -> Wipe -> Factory Reset
+-> Back to home -> Install -> aosp_grouper-7.1.2-ota-eng-20170811.ds.zip -> install
+-> Reboot -> Recovery
+-> Install -> BeansGapps-Mini-7.1.x-20170725.zip
+-> Reboot System
+Done!
+
+//OPTIONAL
+adb reboot bootloader
+fastboot oem lock
+fastboot reboot
+
+
+@see https://ameblo.jp/nattolecats/entry-12312789834.html
+@see https://forum.xda-developers.com/android/themes/bootanimation-android-marshmallow-t3180984
+
+
+
+
+###. adb
+adb devices
+
+adb kill-server
+adb start-server
+
+
+> adb reboot bootloader
+> fastboot flash recovery 1.17.40.16_ww_recovery.img
+
+fastboot flash boot E:\WS\AndroidStudio\ASUS\UL-ASUS_T00P-JP-12.4.5.57-user\boot.img
+
+adb sideload E:\WS\AndroidStudio\ASUS\UL-ASUS_T00P-JP-12.4.5.57-user.zip
+
+
+###. ASUS Zenfone 5
+
+#. How to Fix boot loop on Asus Zenfone 5
+https://video.search.yahoo.com/search/video?fr=yfp-t&p=zenfone+5+boot+looping#id=1&vid=142c35ac8e0527681c9068835437b3f6&action=click
+
+How to Fix Boot Loop on Asus Zenfone 5 | Techno Planners
+http://technoplanners.blogspot.jp/2015/09/how-to-fix-boot-loop-on-asus-zenfone-5.html
+
+Download here
+	Asus Drivers - http://bit.ly/1Kavzi1	- ASUS_Android_USB_drivers_for_Windows_20150212.zip
+	Intel USB Drivers - http://intel.ly/1LuBd0k - IntelAndroidDrvSetup1.10.0.zip
+	UL-ASUS_T00F-WW-2.21.40.44-user- http://bit.ly/1NIe9wm - UL-ASUS_T00P-JP-11.4.6.107-user.zip
+
+
+Step 1. After downloading adb & fastboot tool extract it to desktop.
+
+Step 2. Copy UL-ASUS_T00F-WW-2.21.40.44-user.zip in adb folder.
+
+Step 3. Open UL-ASUS_T00F-WW-2.21.40.44-user.zip and extract recovery.img from it.
+
+Step 4. Open your mobile in droidboot mode. First Power off your device then Press Power button after vibrate suddenly press Volume Up button.
+
+Step 5. Now open adb folder and press SHIFT + Right Mouse Button and select open command here.
+
+ Step 6. Then type fastboot flash recovery recovery.img then enter.
+
+Step 7. Now select recovery mode thn press power button ( if u dont know how to select recovery mode in droidboot mode open the link in step 4).
+
+Step 8. now select apply update from adb then connect with pc and leave it
+
+Step 9. now again follow step 5.
+
+Step 10. now type adb sideload UL-ASUS_T00F-WW-2.21.40.44-user.zip then enter.
+
+Step 11. now reboot and enjoy.
+
+
+http://www.asus-zenfone.com/2014/11/how-to-fix-bootloop-on-zenfone-5-and.html
+
+Pressing Vol UP + Power button for Droidboot mode
+
+
+
+先確認手機版本
+去http://www.asus.com/tw/Phone/ZenFone_5_A500KL/HelpDesk_Download/
+下載原廠ROM
+本人下載此本版本 TW_11.4.6.94 (Downgrade Version)
+測試已成功
+退版步驟如下:
+1. 解壓縮TW_A500KL_11_4_6_94.zip會取得下方檔案TW_A500KL-11.4.6.94-20141218_M3.5.22-ota-user.zip
+2. 使用 MTP 方法連接 A500KL 和 PC 經USB線. (開啟MTP: 設定-->儲存空間-->點選畫面右上方USB圖示-->開啟媒體裝置(MTP))
+3. 複製此降刷工具(v11.4.6.94)檔案至A500KL內部儲存空間.
+4. 關機後, 同時按電源鍵 + 音量下鍵進入 recovery mode
+5. 在A500KL 機器上 : 按音量鍵選擇選擇”1. Enter SD download mode”，按電源鍵確認
+6.按音量鍵選擇 “apply update from internal storage”，按電源鍵確認
+7. 按音量鍵選擇進入 0 ( recovery mode)，按電源鍵確認
+8. 更新完成，按音量鍵選擇 “wipe data/factory reset”(以確保退版後重置磁區)，按電源鍵確認
+9. 按音量鍵選擇 “Yes—delete all user data” ，按電源鍵確認
+10. 完成回覆原廠設定後 按音量鍵選擇 “reboot system now”，按電源鍵確認
+11. 系統完成降版，可至 “關於>>軟體資訊>>版本號碼確認是否為V11.4.6.94
+
+
+
+
+https://productforums.google.com/forum/#!topic/nexus/ihd0YqzMMIc
+
+file:///C:/Users/Pango/AppData/Local/Temp/How%20To%20Flash%20A%20Nexus%207%20With%20A%20Factory%20Image.pdf
+https://developers.google.com/android/ota
+

@@ -1,0 +1,5 @@
+# Default aliases file for postfix
+#
+root:       pango
+admin:      pango
+info:       pango

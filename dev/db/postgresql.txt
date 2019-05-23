@@ -1,0 +1,25 @@
+﻿
+initdb -D "..\_DB\pgdata" -U postgres --encoding=UTF8 --locale=C
+edit postgresql.conf
+	port = 24001
+	listen_addresses = 'localhost'
+pg_ctl -D "..\_DB\pgdata" -l pg.log restart
+dir
+netstat -nat | findstr 24
+
+
+psql -p 24001 -U postgres
+	ALTER USER postgres WITH ENCRYPTED PASSWORD 'hinemos';
+
+	CREATE DATABASE hinemos;
+	CREATE USER hinemos WITH ENCRYPTED PASSWORD 'hinemos';
+	GRANT ALL PRIVILEGES ON DATABASE hinemos TO hinemos;
+	\q
+edit pg_hba.conf
+	host    all             all             127.0.0.1/32            md5
+
+psql -p 24001 -U hinemos -W -l
+
+pg_ctl -D "..\_DB\pgdata" -l pg.log restart
+
+psql -p 24001 -U hinemos -W hinemos

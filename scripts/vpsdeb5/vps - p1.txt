@@ -1,0 +1,34 @@
+1. User
+
+# groupadd ccube
+# groupadd pango
+# groupadd user
+
+# useradd -g ccube -s /bin/bash -d /home/ccube -u 500 ccube
+# useradd -g pango -s /bin/bash -d /home/pango -u 501 pango
+# useradd -g user -s /bin/bash -d /home/userone -u 502 userone
+
+# finger ccube
+# groups ccube
+#34d%94uio##io7i3dsifgv#
+hu34d%94uio
+huio7i3dsifgv
+# passwd pango
+# passwd ccube
+# passwd userone
+
+# mkdir /home/ccube
+# chown -R ccube:ccube /home/ccube
+# mkdir /home/pango
+# chown -R pango:pango /home/pango
+# mkdir /home/userone
+# chown -R userone:user /home/userone
+
+
+# apt-get install sudo
+
+# chmod 640 /etc/sudoers
+# vi /etc/sudoers
+	pango    ALL=(ALL) ALL
+	ccube    ALL=(ALL) ALL
+# chmod 440 /etc/sudoers

@@ -1,0 +1,46 @@
+Mail server with Postfix & Dovecot
+=================================
+
+# aptitude install postfix postfix-tls libsasl2 sasl2-bin libsasl2-modules popa3d
+
+# aptitude install dovecot-imapd dovecot-pop3d dovecot-common
+
+### check dovecot SASL support
+# postconf -a
+
+### ADDUSER postman
+### ADDGROUP postman
+# mkdir /home/postman/.secret
+# dovecotpw -s CRAM-MD5
+Enter new password:test
+Retype new password:test
+{CRAM-MD5}e02d374fde0dc75a17a557039a3a5338c7743304777dccd376f332bee68d2cf6
+# dovecotpw -s PLAIN-MD5
+Enter new password:test
+Retype new password:test
+{PLAIN-MD5}098f6bcd4621d373cade4e832627b4f6
+# vi /home/postman/.secret/dovecot-passwd
+	# Dovecot USER DB-file& PASSWD DB-file
+	pango@pango.ath.cx:{PLAIN-MD5}098f6bcd4621d373cade4e832627b4f6:1001:1001::/home/postman/pango.ath.cx/pango
+	admin@pango.ath.cx:{PLAIN-MD5}098f6bcd4621d373cade4e832627b4f6:1001:1001::/home/postman/pango.ath.cx/admin
+	info@pango.ath.cx:{CRAM-MD5}e02d374fde0dc75a17a557039a3a5338c7743304777dccd376f332bee68d2cf6:1001:1001::/home/postman/pango.ath.cx/info
+	pango@pango.ath.cx:{PLAIN-MD5}098f6bcd4621d373cade4e832627b4f6:1001:1001::/home/postman/kumano.no-ip.org/pango
+	admin@kumano.no-ip.org:{PLAIN-MD5}098f6bcd4621d373cade4e832627b4f6:1001:1001::/home/postman/kumano.no-ip.org/pango
+	info@kumano.no-ip.org:{PLAIN-MD5}098f6bcd4621d373cade4e832627b4f6:1001:1001::/home/postman/kumano.no-ip.org/pango
+
+### EDIT /etc/dovecot/dovecot.conf
+### EDIT /etc/postfix/main.conf
+
+# postmap /etc/postfix/db/*
+# chown postman:postman /etc/postfix/program/mailpipe.sh
+# chmod u+x /etc/postfix/program/mailpipe.sh
+
+# mkdir /home/postman/.filter
+# chown postman:postman -R /home/postman
+
+
+#/etc/init.d/saslauthd restart
+
+#/etc/init.d/postfix restart
+
+#/etc/init.d/dovecot restart

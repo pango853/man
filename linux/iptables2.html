@@ -1,0 +1,1341 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<!--
+  ======================================================================================
+  File    : http://www.system-act.com/server/iptables.html
+  Author  : System House ACT
+  History : $Date:: 2011-02-07 18:07:42 #$ $Rev: 15 $ $Author: tyamaguchi $
+
+  System House ACT Web Site : CentOS サーバー運用・管理 iptables
+
+  Copyright 2004-2011 System House ACT All rights reserved.
+  ======================================================================================
+-->
+
+<html lang="ja">
+<head>
+  <meta http-equiv="Content-Type"        content="text/html; charset=UTF-8" />
+  <meta http-equiv="Content-Script-Type" content="text/javascript"          />
+  <meta http-equiv="Content-Style-Type"  content="text/css"                 />
+  <link rel="stylesheet"    type="text/css"     href="/css/act.css"         />
+  <link rel="shortcut icon" type="image/x-icon" href="/images/favicon.ico"  />
+  <link rel="icon"          type="image/x-icon" href="/images/favicon.ico"  />
+  <script type="text/javascript" src="/scripts/library.js"></script>
+  <script type="text/javascript" src="/scripts/common.js"></script>
+  <script type="text/javascript" src="/scripts/funclib.js"></script>
+  <script type="text/javascript" src="/scripts/act.js"></script>
+  <meta name="name"        content="CentOS サーバー運用・管理 iptables" />
+  <meta name="robots"      content="INDEX,FOLLOW" />
+  <meta name="description" content="ファイアウォールにiptablesを使用し、NICを2枚挿しによるゲートウェイサーバーとして運用しています。" />
+  <meta name="keywords"    content="CentOS,ファイアウォール,iptables,ゲートウェイ,迷惑メール,接続拒否" />
+  <meta name="system-act.com.twittag" content="centos iptables" />
+  <title>CentOS サーバー運用・管理 iptables - System House ACT</title>
+</head>
+<body>
+  <div id="Title"><h1>CentOS サーバー運用・管理 iptables</h1></div>
+  <div id="Contents">
+    <div id="Modified">(最終更新日時:2011-02-07 18:09:47)</div>
+    System House ACT では、ファイアウォールに <span class="Brown">iptables</span> を使用しています。<br />
+    また、サーバーは NIC を 2 枚挿しにして、ゲートウェイサーバーとして運用しています。<br />
+    以下は、ゲートウェイサーバーとしての <span class="Brown">iptables</span> の運用設定です。<br />
+    さらに、併せて、迷惑メール送信業者等からの接続を拒否するための設定を行っています。
+
+    <div class="Red">
+    あくまでも当サーバーの設定内容であり、不正アクセス等が防げることを保証するものではありません。また、こうしなければならないというものでもありません。<br />
+    <span class="ULine">実際の iptables の運用や設定につきましては、各々の責任でお願いいたします。</span>
+    </div>
+    <div id="TopBox"><script type="text/javascript"><!--
+google_ad_client = "pub-3728753872821379";
+/* System House ACT, Top, 728x90 Text */
+google_ad_slot = "1277403409";
+google_ad_width = 728;
+google_ad_height = 90;
+//-->
+</script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script></div>
+
+    <h2>設定ファイルの編集</h2>
+    起動時に FTP を PASV モードで使用するためのモジュールを追加します。
+    <pre class="Console">
+# <span class="Blue">vi /etc/sysconfig/iptables-config</span>
+<span class="Gray">----------(vi ここから)----------</span><span class="Green">
+       :
+IPTABLES_MODULES="ip_conntrack_netbios_ns<span class="Red"> ip_conntrack_ftp</span>"
+       :
+</span><span class="Gray">----------(vi ここまで)----------</span>
+
+# <span class="Blue">service iptables restart</span>                               <span class="Gray">再起動します</span></pre>
+
+    <h2 id="script">設定用スクリプトの作成</h2>
+    設定のためのスクリプトを作成します。
+    <pre class="Console">
+# <span class="Blue">vi /usr/local/sbin/firewall.sh</span>
+<span class="Gray">----------(vi ここから)----------</span><span class="Green">
+#!/bin/sh
+<span class="Gray"># ==========================================================================================
+# File    : firewall.sh
+# Author  : System House ACT
+#
+# ファイアウォールの設定を行う
+#
+# Copyright 2004-2011 System House ACT All rights reserved.
+# ==========================================================================================
+
+# --------------------------------------------------------------------------- (変数定義) ---</span>
+<span class="Gray"># 外部I/Fのネットワーク情報</span>
+EXTIF="eth0"
+EXTIP=$(ifconfig $EXTIF | grep inet | cut -d ":" -f 2 | cut -d " " -f 1)
+
+<span class="Gray"># 内部I/Fのネットワーク情報</span>
+INTIF="eth1"
+INTIP=$(ifconfig $INTIF | grep inet | cut -d ":" -f 2 | cut -d " " -f 1)
+INTMASK=$(ifconfig $INTIF | grep Mask | cut -d ":" -f 4)
+INTLAN=$INTIP'/'$INTMASK
+
+<span class="Gray"># 非特権ポート</span>
+UNPRIVPORTS="1024:65535"
+
+<span class="Gray"># パラメータ</span>
+LOGLIMIT="1/s"                                           <span class="Gray"># ログマッチ許可    1回/秒</span>
+LOGBURST="3"                                             <span class="Gray"># ログマッチ最大値  3回</span>
+SYNLIMIT="10/s"                                          <span class="Gray"># SYN-Flood許可    10回/秒</span>
+SYNBURST="30"                                            <span class="Gray"># SYN-Flood最大値  30回</span>
+PINGLIMIT="10/s"                                         <span class="Gray"># PING-Flood許可   10回/秒</span>
+PINGBURST="30"                                           <span class="Gray"># PING-Flood最大値 30回</span>
+
+<span class="Gray"># ----------------------------------------------------------------------------- (初期化) ---</span>
+<span class="Gray"># 全チェインを空にする</span>
+iptables           -F
+iptables -t nat    -F
+iptables -t mangle -F
+
+<span class="Gray"># 全ユーザー定義チェインを削除する</span>
+iptables           -X
+iptables -t nat    -X
+iptables -t mangle -X
+
+<span class="Gray"># 全チェインのカウンタをクリアする</span>
+iptables           -Z
+iptables -t nat    -Z
+iptables -t mangle -Z
+
+<span class="Gray"># デフォルトポリシーをDROPに設定する</span>
+iptables -P INPUT   DROP
+iptables -P OUTPUT  DROP
+iptables -P FORWARD DROP
+
+<span class="Gray"># ----------------------------------------------------------------------- (ログチェイン) ---</span>
+<span class="Gray"># DROPパケット</span>
+iptables -N LOG-DROP
+iptables -A LOG-DROP -p all \
+                     -m limit --limit $LOGLIMIT --limit-burst $LOGBURST \
+                     -j LOG --log-prefix "iptables DROP "
+iptables -A LOG-DROP -f \
+                     -m limit --limit $LOGLIMIT --limit-burst $LOGBURST \
+                     -j LOG --log-prefix "iptables FRAGMENT DROP "
+iptables -A LOG-DROP -j DROP
+
+<span class="Gray"># REJECTパケット</span>
+iptables -N LOG-REJECT
+iptables -A LOG-REJECT -p all \
+                       -m limit --limit $LOGLIMIT --limit-burst $LOGBURST \
+                       -j LOG --log-prefix "iptables REJECT "
+iptables -A LOG-REJECT -f \
+                       -m limit --limit $LOGLIMIT --limit-burst $LOGBURST \
+                       -j LOG --log-prefix "iptables FRAGMENT REJECT "
+iptables -A LOG-REJECT -p tcp -j REJECT --reject-with tcp-reset
+iptables -A LOG-REJECT -p udp -j REJECT --reject-with icmp-port-unreachable
+iptables -A LOG-REJECT -j REJECT
+
+<span class="Gray"># 悪質な接続元からのパケットを破棄</span>
+iptables -N LOG-BLACK-IP
+iptables -A LOG-BLACK-IP -m limit --limit $LOGLIMIT --limit-burst $LOGBURST \
+                         -j LOG --log-prefix "iptables BLACK-IP DROP "
+iptables -A LOG-BLACK-IP -j DROP
+
+<span class="Gray"># 不正なフラグを持つパケットを破棄</span>
+iptables -N LOG-BADFLAG
+iptables -A LOG-BADFLAG -m limit --limit $LOGLIMIT --limit-burst $LOGBURST \
+                        -j LOG --log-prefix "iptables BADFLAG DROP "
+iptables -A LOG-BADFLAG -j DROP
+
+<span class="Gray"># 既存の接続に結び付けられていないパケットを破棄</span>
+iptables -N LOG-INVALID
+iptables -A LOG-INVALID -m limit --limit $LOGLIMIT --limit-burst $LOGBURST \
+                        -j LOG --log-prefix "iptables INVALID DROP "
+iptables -A LOG-INVALID -j DROP
+
+<span class="Gray"># SYN-Floodパケットを破棄</span>
+iptables -N LOG-SYNFLOOD
+iptables -A LOG-SYNFLOOD -m limit --limit $LOGLIMIT --limit-burst $LOGBURST \
+                         -j LOG --log-prefix "iptables SYNFLOOD DROP "
+iptables -A LOG-SYNFLOOD -j DROP
+
+<span class="Gray"># PING-Floodパケットを破棄</span>
+iptables -N LOG-PINGFLOOD
+iptables -A LOG-PINGFLOOD -m limit --limit $LOGLIMIT --limit-burst $LOGBURST \
+                          -j LOG --log-prefix "iptables PINGFLOOD DROP "
+iptables -A LOG-PINGFLOOD -j DROP
+
+<span class="Gray"># 接続拒否国からのパケットを破棄</span>
+iptables -N LOG-DENY-COUNTRY
+iptables -A LOG-DENY-COUNTRY -m limit --limit $LOGLIMIT --limit-burst $LOGBURST \
+                             -j LOG --log-prefix "iptables DENY-COUNTRY DROP "
+iptables -A LOG-DENY-COUNTRY -j DROP
+
+<span class="Gray"># --------------------------------------------------------------- (ユーザー定義チェイン) ---</span>
+<span class="Gray"># 悪質な接続元をチェック</span>
+iptables -N CHK-BLACK-IP
+<span class="Red ULine"># ※チェイン内容は別のスクリプトで作成します</span>
+
+<span class="Gray"># SYN-Floodをチェック</span>
+iptables -N CHK-SYNFLOOD
+iptables -A CHK-SYNFLOOD -p tcp --syn \
+                         -m limit --limit $SYNLIMIT --limit-burst $SYNBURST -j ACCEPT
+iptables -A CHK-SYNFLOOD -p tcp   --syn -j LOG-SYNFLOOD
+iptables -A CHK-SYNFLOOD -p tcp ! --syn -j ACCEPT
+
+<span class="Gray"># 不正なフラグを持つパケットをチェック</span>
+iptables -N CHK-BADFLAG
+iptables -A CHK-BADFLAG -p tcp --tcp-flags SYN,RST SYN,RST         -j LOG-BADFLAG
+iptables -A CHK-BADFLAG -p tcp --tcp-flags SYN,FIN SYN,FIN         -j LOG-BADFLAG
+iptables -A CHK-BADFLAG -p tcp --tcp-flags ACK,FIN FIN             -j LOG-BADFLAG
+iptables -A CHK-BADFLAG -p tcp --tcp-flags ACK,PSH PSH             -j LOG-BADFLAG
+iptables -A CHK-BADFLAG -p tcp --tcp-flags ACK,URG URG             -j LOG-BADFLAG
+iptables -A CHK-BADFLAG -p tcp --tcp-flags FIN,RST FIN,RST         -j LOG-BADFLAG
+iptables -A CHK-BADFLAG -p tcp --tcp-flags ALL ALL                 -j LOG-BADFLAG
+iptables -A CHK-BADFLAG -p tcp --tcp-flags ALL NONE                -j LOG-BADFLAG
+iptables -A CHK-BADFLAG -p tcp --tcp-flags ALL FIN,URG,PSH         -j LOG-BADFLAG
+iptables -A CHK-BADFLAG -p tcp --tcp-flags ALL SYN,FIN,URG,PSH     -j LOG-BADFLAG
+iptables -A CHK-BADFLAG -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG -j LOG-BADFLAG
+iptables -A CHK-BADFLAG -p tcp --tcp-option  64                    -j LOG-BADFLAG
+iptables -A CHK-BADFLAG -p tcp --tcp-option 128                    -j LOG-BADFLAG
+
+<span class="Gray"># 既存の接続に結び付けられていないパケットをチェック</span>
+iptables -N CHK-INVALID
+iptables -A CHK-INVALID -p tcp --dport 80 -j RETURN                             <span class="Gray"># WindowsXP IE 対応</span>
+iptables -A CHK-INVALID -p all -m state --state INVALID -j LOG-INVALID
+
+<span class="Gray"># 国別のアクセス制限をチェック</span>
+iptables -N CHK-COUNTRY
+<span class="Red ULine"># ※チェイン内容は別のスクリプトで作成します</span>
+
+<span class="Gray"># INPUT ICMPパケットをチェック</span>
+iptables -N CHK-IN-ICMP
+<span class="Gray"># Ping Flood対策</span>
+iptables -A CHK-IN-ICMP -p icmp --icmp-type echo-request \
+                        -m limit --limit $PINGLIMIT --limit-burst $PINGBURST -j ACCEPT
+iptables -A CHK-IN-ICMP -p icmp --icmp-type echo-request -j LOG-PINGFLOOD
+<span class="Gray"># ICMP Type  5 (redirect)を破棄</span>
+iptables -A CHK-IN-ICMP -p icmp --icmp-type redirect             -j LOG-DROP
+<span class="Gray"># ICMP Type 13 (timestamp-request)を破棄</span>
+iptables -A CHK-IN-ICMP -p icmp --icmp-type timestamp-request    -j LOG-DROP
+<span class="Gray"># ICMP Type 14 (timestamp-reply)を破棄</span>
+iptables -A CHK-IN-ICMP -p icmp --icmp-type timestamp-reply      -j LOG-DROP
+<span class="Gray"># ICMP Type 17 (address-maskrequest)を破棄</span>
+iptables -A CHK-IN-ICMP -p icmp --icmp-type address-mask-request -j LOG-DROP
+<span class="Gray"># ICMP Type 18 (address-mask-reply)を破棄</span>
+iptables -A CHK-IN-ICMP -p icmp --icmp-type address-mask-reply   -j LOG-DROP
+<span class="Gray"># チェックOKなら許可</span>
+iptables -A CHK-IN-ICMP -p icmp -j ACCEPT
+
+<span class="Gray"># OUTPUT ICMPパケットをチェック</span>
+iptables -N CHK-OUT-ICMP
+<span class="Gray"># ICMP Type  5 (redirect)を破棄</span>
+iptables -A CHK-OUT-ICMP -p icmp --icmp-type redirect             -j LOG-DROP
+<span class="Gray"># ICMP Type 11 (time-exceeded)を破棄</span>
+iptables -A CHK-OUT-ICMP -p icmp --icmp-type time-exceeded        -j LOG-DROP
+<span class="Gray"># ICMP Type 12 (parameter-problem)を破棄</span>
+iptables -A CHK-OUT-ICMP -p icmp --icmp-type parameter-problem    -j LOG-DROP
+<span class="Gray"># ICMP Type 13 (timestamp-request)を破棄</span>
+iptables -A CHK-OUT-ICMP -p icmp --icmp-type timestamp-request    -j LOG-DROP
+<span class="Gray"># ICMP Type 13 (timestamp-reply)を破棄</span>
+iptables -A CHK-OUT-ICMP -p icmp --icmp-type timestamp-reply      -j LOG-DROP
+<span class="Gray"># ICMP Type 17 (address-mask-request)を破棄</span>
+iptables -A CHK-OUT-ICMP -p icmp --icmp-type address-mask-request -j LOG-DROP
+<span class="Gray"># ICMP Type 18 (address-mask-reply)を破棄</span>
+iptables -A CHK-OUT-ICMP -p icmp --icmp-type address-mask-reply   -j LOG-DROP
+<span class="Gray"># チェックOKなら許可</span>
+iptables -A CHK-OUT-ICMP -p icmp -j ACCEPT
+
+<span class="Gray"># SMBパケットをチェック</span>
+iptables -N CHK-SMB
+iptables -A CHK-SMB -p tcp --dport 137:139 -j DROP
+iptables -A CHK-SMB -p tcp --dport 445     -j DROP
+iptables -A CHK-SMB -p udp --dport 137:139 -j DROP
+iptables -A CHK-SMB -p udp --dport 445     -j DROP
+iptables -A CHK-SMB -p tcp --sport 137:139 -j DROP
+iptables -A CHK-SMB -p tcp --sport 445     -j DROP
+iptables -A CHK-SMB -p udp --sport 137:139 -j DROP
+iptables -A CHK-SMB -p udp --sport 445     -j DROP
+
+<span class="Gray"># # ---------------------------------------------------------------------- (INPUTチェイン) ---</span>
+<span class="Gray"># ローカルからのパケットを許可</span>
+iptables -A INPUT -i lo -j ACCEPT
+
+<span class="Gray"># 内部LANからのパケットを許可</span>
+iptables -A INPUT -i $INTIF -s $INTLAN -j ACCEPT
+
+<span class="Gray"># 内部I/FのDHCP Broadcastを許可</span>
+iptables -A INPUT -i $INTIF -p udp --sport 68 --dport 67 -j ACCEPT
+
+<span class="Gray"># 悪質なアクセス元をチェック</span>
+iptables -A INPUT -p tcp -j CHK-BLACK-IP
+
+<span class="Gray"># 内部LANを騙る偽パケットを破棄</span>
+iptables -A INPUT -s $INTLAN -j LOG-DROP
+
+<span class="Gray"># IDENTパケットを拒否</span>
+iptables -A INPUT -i $EXTIF -p tcp --dport 113 -j REJECT --reject-with tcp-reset
+
+<span class="Gray"># ローカルアドレス宛のパケットを拒否</span>
+iptables -A INPUT -d 127.0.0.0/8 -j LOG-REJECT
+
+<span class="Gray"># 不正なフラグを持つパケットをチェック</span>
+iptables -A INPUT -p tcp -j CHK-BADFLAG
+
+<span class="Gray"># INPUT ICMPパケットをチェック</span>
+iptables -A INPUT -i $EXTIF -p icmp -j CHK-IN-ICMP
+
+<span class="Gray"># 外部I/FのSMBパケットをチェック</span>
+iptables -A INPUT -i $EXTIF -j CHK-SMB
+
+<span class="Gray"># 既存の接続に結び付けられていないパケットをチェック</span>
+iptables -A INPUT -i $EXTIF -j CHK-INVALID
+
+<span class="Red ULine"># ※各サービスのルールをここに入れます</span>
+
+<span class="Gray"># ESTABLISHED/RELATED接続を許可</span>
+iptables -A INPUT -i $EXTIF -m state --state ESTABLISHED -j ACCEPT
+iptables -A INPUT -i $EXTIF -p tcp --dport $UNPRIVPORTS \
+                            -m state --state RELATED     -j CHK-SYNFLOOD
+iptables -A INPUT -i $EXTIF -p udp --dport $UNPRIVPORTS -m state --state RELATED -j ACCEPT
+
+<span class="Gray"># 上記の何れにもマッチしなかったINPUTパケットを廃棄</span>
+iptables -A INPUT -j LOG-DROP
+
+<span class="Gray"># --------------------------------------------------------------------- (OUTPUTチェイン) ---</span>
+<span class="Gray"># ローカルのパケットを許可する</span>
+iptables -A OUTPUT -o lo -j ACCEPT
+
+<span class="Gray"># 内部LANへのパケットを許可</span>
+iptables -A OUTPUT -o $INTIF -d $INTLAN -j ACCEPT
+
+<span class="Gray"># UDPによるtracerouteコマンドを許可</span>
+iptables -A OUTPUT -o $EXTIF -p udp --dport 33434:33523 -m state --state NEW -j ACCEPT
+
+<span class="Gray"># OUPUT ICMPパケットをチェック</span>
+iptables -A OUTPUT -o $EXTIF -p icmp -j CHK-OUT-ICMP
+
+<span class="Gray"># 外部I/FのSMBパケットをチェック</span>
+iptables -A OUTPUT -o $EXTIF -j CHK-SMB
+
+<span class="Red ULine"># ※各サービスのルールをここに入れます</span>
+
+<span class="Gray"># 非特権ポートからのTCP/UDPパケットを許可</span>
+iptables -A OUTPUT -o $EXTIF -s $EXTIP -p tcp --sport $UNPRIVPORTS -j ACCEPT
+iptables -A OUTPUT -o $EXTIF -s $EXTIP -p udp --sport $UNPRIVPORTS -j ACCEPT
+
+<span class="Gray"># 上記の何れにもマッチしなかったOUTPUTパケットを廃棄</span>
+iptables -A OUTPUT -j LOG-DROP
+
+<span class="Gray"># -------------------------------------------------------------------- (FORWARDチェイン) ---</span>
+<span class="Gray"># 既存の接続に結び付けられていないパケットを破棄</span>
+iptables -A FORWARD -i $EXTIF -m state --state INVALID -j LOG-INVALID
+
+<span class="Gray"># 不正なフラグを持つパケットをチェック</span>
+iptables -A FORWARD -p tcp -j CHK-BADFLAG
+
+<span class="Gray"># 外部I/FのSMBパケットをチェック</span>
+iptables -A FORWARD -o $EXTIF -j CHK-SMB
+
+<span class="Red ULine"># ※各サービスのルールをここに入れます</span>
+
+<span class="Gray"># 内部LANの非特権ポートから外部への転送を許可</span>
+iptables -A FORWARD -i $INTIF -o $EXTIF -s $INTLAN -p tcp --sport $UNPRIVPORTS -j ACCEPT
+iptables -A FORWARD -i $INTIF -o $EXTIF -s $INTLAN -p udp --sport $UNPRIVPORTS -j ACCEPT
+iptables -A FORWARD -i $INTIF -o $EXTIF -s $INTLAN -p icmp -j ACCEPT
+
+<span class="Gray"># 外部から内部LANの非特権ポートへの転送を許可</span>
+iptables -A FORWARD -i $EXTIF -m state --state ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i $EXTIF -p tcp --dport $UNPRIVPORTS -m state --state RELATED -j CHK-SYNFLOOD
+iptables -A FORWARD -i $EXTIF -p udp --dport $UNPRIVPORTS -m state --state RELATED -j ACCEPT
+iptables -A FORWARD -i $EXTIF -p icmp -m state --state RELATED -j ACCEPT
+
+<span class="Gray"># 上記の何れにもマッチしなかったFORWARDパケットを廃棄</span>
+iptables -A FORWARD -j LOG-DROP
+
+<span class="Gray"># ------------------------------------------------------------------------ (POSTROUTING) ---</span>
+iptables -A POSTROUTING -t nat -o $EXTIF -j MASQUERADE
+
+<span class="Gray"># --- (ルールを保存する) ---</span>
+service iptables save
+</span><span class="Gray">----------(vi ここまで)----------</span>
+</pre>
+
+    <div class="MiddleBox"><script type="text/javascript"><!--
+google_ad_client = "pub-3728753872821379";
+/* System House ACT, 728x90, Bottom */
+google_ad_slot = "7442527888";
+google_ad_width = 728;
+google_ad_height = 90;
+//-->
+</script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</div>
+
+    <h2>ファイアウォールの適用</h2>
+    作成したスクリプトを実行します。
+    <pre class="Console">
+# <span class="Blue">chmod +x /usr/local/sbin/firewall.sh</span>
+# <span class="Blue">firewall.sh</span></pre>
+
+    <h2>国別のアクセス制限チェック</h2>
+    World Wide なインターネット環境を利用していながら、接続してくる国を制限するというのは心苦しい限りです。<br />
+    しかし、迷惑メールやサーバーへの不正侵入対策としてはかなりの効果があります、<br />
+    <br />
+    当サーバーでは、無条件に制限するというのではなく、メールや SSH 、FTP といったサービスへの接続を制限しています。<br />
+    SSH や Anonymous 接続を許可していない FTP サービスでは、許可されたユーザー以外の接続を元々制限していますので、拒否して問題になることはほとんどないでしょう。<br />
+    出張等で海外へ行く場合は、都度制限を外すという運用を行います。<br />
+    また、メールについては、ホワイトリストによる救済を行えば問題ないと考えます。<br />
+    <br />
+    ホワイト IP 作成用のスクリプトを準備します。
+    <pre class="Console">
+# <span class="Blue">mkdir /usr/local/sbin/firewall</span>
+# <span class="Blue">cd    /usr/local/sbin/firewall</span>
+
+# <span class="Brown">(DNS の A レコードからファイアウォールの White IP を作成するスクリプト)</span>
+# <span class="Blue">vi white_ip_a.sh</span>
+<span class="Gray">----------(vi ここから)----------</span><span class="Green">
+#!/bin/sh
+<span class="Gray"># ==========================================================================================
+# File    : white_ip_a.sh
+# Author  : System House ACT
+#
+# DNS の A レコードからファイアウォールの White IP 設定を行う
+#
+# Copyright 2010-2011 System House ACT All rights reserved.
+# ==========================================================================================</span>
+
+for IP_ADDR in $(dig a $1 | grep "^$1" | sed "s/[[:blank:]]\+/ /g" | cut -d " " -f 5); do
+  iptables -A CHK-COUNTRY -s $IP_ADDR -j RETURN
+done
+</span><span class="Gray">----------(vi ここまで)----------</span>
+
+# <span class="Blue">chmod +x white_ip_a.sh</span>
+
+# <span class="Brown">(DNS の SPF レコードからファイアウォールの White IP を作成するスクリプト)</span>
+# <span class="Blue">vi white_ip_spf.sh</span>
+<span class="Gray">----------(vi ここから)----------</span><span class="Green">
+#!/bin/sh
+<span class="Gray"># ==========================================================================================
+# File    : white_ip_spf.sh
+# Author  : System House ACT
+#
+# DNS の SPF レコードからファイアウォールの White IP 設定を行う
+#
+# Copyright 2010-2011 System House ACT All rights reserved.
+# ==========================================================================================</span>
+
+<span class="Gray"># DNS の MX レコードからファイアウォールの White IP 設定を行う関数</span>
+function mx_record {
+  for MX_NAME in $(dig mx $1 | grep "^$1" | sed "s/[[:blank:]]\+/ /g" | cut -d " " -f 6); do
+    ./white_ip_a.sh $MX_NAME
+  done
+}
+
+for SPF_TEXT in $(dig txt $1 | grep v=spf1 | sed "s/^.*\"\(.*\)\".*$/\1/"); do
+  KEYWORD=$(echo $SPF_TEXT | cut -d ":" -f 1 -s)
+  case $KEYWORD in
+  include)
+    INCLUDE_SPF=$(echo $SPF_TEXT | cut -d ":" -f 2)
+    ./white_ip_spf.sh $INCLUDE_SPF
+    ;;
+  ip4)
+    IP_ADDR=$(echo $SPF_TEXT | cut -d ":" -f 2)
+    iptables -A CHK-COUNTRY -s $IP_ADDR -j RETURN
+    ;;
+  a)
+    INCLUDE_A=$(echo $SPF_TEXT | cut -d ":" -f 2)
+    ./white_ip_a.sh $INCLUDE_A
+    ;;
+  mx)
+    INCLUDE_MX=$(echo $SPF_TEXT | cut -d ":" -f 2)
+    mx_record $INCLUDE_MX
+    ;;
+  esac
+done
+</span><span class="Gray">----------(vi ここまで)----------</span>
+
+# <span class="Blue">chmod +x white_ip_spf.sh</span></pre>
+    <br />
+
+    国別アクセス制限のチェックルール作成スクリプトを作成します。<br />
+    <a href="http://nami.jp/">Office Nami 様</a> が提供されている
+    <span class="Brown">『世界の国別 IPv4 アドレス割り当てリスト』</span> を使用させていただいております。 
+    <pre class="Console">
+# <span class="Blue">cd /usr/local/sbin/firewall</span>
+# <span class="Blue">vi check_country.sh</span>
+<span class="Gray">----------(vi ここから)----------</span><span class="Green">
+#!/bin/sh
+<span class="Gray"># ==========================================================================================
+# File    : /usr/local/sbin/firewall/check_country.sh
+# Author  : System House ACT
+#
+# ファイアウォールの国別アクセス制限設定を行う
+#
+# Copyright 2010-2011 System House ACT All rights reserved.
+# ==========================================================================================</span>
+
+CIDRFILE="cidr.txt"
+
+cd /usr/local/sbin/firewall
+
+<span class="Gray"># 国別IPアドレスリストを取得する</span>
+if [ "$(find $CIDRFILE -ctime -6 -print)" = "" ] ; then
+  wget -q http://nami.jp/ipv4bycc/cidr.txt.gz
+  if [ ! -f cidr.txt.gz ]; then
+    echo "Could not get the cidr.txt.gz from http://nami.jp/" \
+       | mail -s "iptables CHK-COUNTRY Chain Rule Setup Script" root
+    exit 1
+  fi
+  gzip -df cidr.txt.gz
+fi
+
+<span class="Gray"># CHK-COUNTRYルールを初期化する</span>
+iptables -F CHK-COUNTRY
+
+<span class="Gray"># WHITE_IPをルールに追加する<span class="Red">(以下、空白行までは適宜、追加・削除してください)</span></span>
+./white_ip_spf.sh amazon.com                      # Amazon
+./white_ip_spf.sh facebook.com                    # Facebook
+./white_ip_spf.sh google.com                      # Google
+./white_ip_spf.sh microsoft.com                   # Microsoft
+./white_ip_spf.sh worldcommunitygrid.org          # BOINC(WCG)
+./white_ip_a.sh   www.boincstats.com              # BOINC(stats/BAM!)
+./white_ip_a.sh   verifier.port25.com             # SPF/Sender ID/DomainKeys Check
+
+if [ -s white_ip_list ]; then
+  for IP_ADDR in $(cat white_ip_list | sed -e "/^#/d" -e "s/^\([^[:blank:]]*\).*/\1/"); do
+    iptables -A CHK-COUNTRY -s $IP_ADDR -j RETURN
+  done
+fi
+
+<span class="Gray"># 国別アクセスルールをiptablesのルールに追加する</span>
+if [ -s rule_list ]; then
+  for RULE in $(cat rule_list | sed -e "/^#/d" -e "s/^\([^[:blank:]]*\).*/\1/"); do
+    CONTRY=$(echo $RULE | cut -d "|" -f 1)
+    TARGET=$(echo $RULE | cut -d "|" -f 2)
+    if [ "$TARGET" = "RETURN" ]; then
+      TARGET="-j $TARGET"
+    else
+      TARGET="-p tcp -m state --state NEW -j $TARGET"
+    fi
+    if [ "$CONTRY" != "**" ]; then
+      for IP in $(cat cidr.txt | grep "^$CONTRY" | sed "s/$CONTRY[^0-9]*\(.*\)/\1/"); do
+        iptables -A CHK-COUNTRY -s $IP $TARGET
+      done
+    else
+      iptables -A CHK-COUNTRY $TARGET
+    fi
+  done
+fi
+
+<span class="Gray"># ルールを保存する</span>
+service iptables save
+</span><span class="Gray">----------(vi ここまで)----------</span>
+
+# <span class="Blue">chmod +x check_country.sh</span></pre>
+    <br />
+    
+    国別アクセス制限のチェックルールリストを作成します。
+    <pre class="Console">
+# <span class="Blue">cd /usr/local/sbin/firewall</span>
+
+# <span class="Brown">(個別の White IP リストを作成します)</span>
+# <span class="Blue">vi white_ip_list</span>
+<span class="Gray">----------(vi ここから)----------</span><span class="Green">
+# <span class="Red">※以下は例です。</span>
+1.2.3.4                 <span class="Gray"># (例) 単独指定</span>
+1.2.3.0/24              <span class="Gray"># (例) 範囲指定 CIDR</span>
+1.2.3.0/255.255.255.0   <span class="Gray"># (例) 範囲指定 サブネットマスク</span>
+</span><span class="Gray">----------(vi ここまで)----------</span>
+
+# <span class="Brown">(ルールリストを作成します)</span>
+# <span class="Blue">vi rule_list</span>
+<span class="Gray">----------(vi ここから)----------</span><span class="Green">
+<span class="Gray"># (例) 中国、韓国からの接続を廃棄します</span>
+CN|DROP
+KR|DROP
+
+<span class="Gray"># (例) 日本以外からの接続を廃棄します</span>
+JP|RETURN
+**|DROP                 <span class="Gray"># ** は最後の行になります</span>
+                        <span class="Gray"># 記述がない場合は **|RETURN になります</span>
+
+<span class="Gray"># (例) 中国、韓国からの接続は廃棄し、</span>
+<span class="Gray">#      日本以外からの接続はログに出力して廃棄します</span>
+CN|DROP
+KR|DROP
+JP|RETURN
+**|LOG-DENY-COUNTRY
+</span><span class="Gray">----------(vi ここまで)----------</span>
+</pre>
+    <br />
+
+    国別アクセス制限のチェックルールを登録します。<br />
+    また、IPアドレスの割当ては日々更新されていますので、定期的にスクリプトが実行されるようにします。
+    <pre class="Console">
+# <span class="Blue">/usr/local/sbin/firewall/check_country.sh</span>
+
+# <span class="Gray">(<span class="Brown">cron</span> により定期的に実行します)</span>
+# <span class="Red"># ※Office Nami 様サーバーへの負荷を考慮し、週１回にします。</span>
+# <span class="Blue">vi /etc/crontab</span>
+<span class="Gray">----------(vi ここから)----------</span><span class="Green">
+       :
+# firewall
+02 6 * * sun root /usr/local/sbin/firewall/check_country.sh > /dev/null 2>&amp;1
+       :
+</span><span class="Gray">----------(vi ここまで)----------</span>
+</pre>
+
+    <h2>悪質なアクセス元をブロック</h2>
+    出会い系サイトに代表される迷惑メールの配信傾向として、ここ最近はメール配信業者を経由することが多くなっています。<br />
+    メール配信業者といっても、悪質な出会い系サイト業者からのメール配信に対して、何ら有効な対策を採ることのない業者は同列だと考えます。<br />
+    そのような業者からのアクセスをブロックする設定を行います。<br />
+    <br />
+    悪質なアクセス元のチェックルール作成スクリプトを作成します。
+    <pre class="Console">
+# <span class="Blue">cd /usr/local/sbin/firewall</span>
+# <span class="Blue">vi check_black_ip.sh</span>
+<span class="Gray">----------(vi ここから)----------</span><span class="Green">
+#!/bin/sh
+<span class="Gray"># ==========================================================================================
+# File    : /usr/local/sbin/firewall/check_black_ip.sh
+# Author  : System House ACT
+#
+# ファイアウォールのブラックIPアドレスのアクセス制限設定を行う
+#
+# Copyright 2010-2011 System House ACT All rights reserved.
+# ==========================================================================================</span>
+
+cd /usr/local/sbin/firewall
+
+<span class="Gray"># CHK-BLACK-IPルールを初期化する</span>
+iptables -F CHK-BLACK-IP
+
+<span class="Gray"># BLACK-IPをルールに追加する</span>
+if [ -s black_ip_list ]; then
+  for RULE in $(cat black_ip_list | sed -e "/^#/d" -e "s/^\([^[:blank:]]*\).*/\1/"); do
+    IP_ADDR=$(echo $RULE | cut -d "|" -f 1)
+    TARGET=$(echo $RULE | cut -d "|" -f 2)
+    iptables -A CHK-BLACK-IP -s $IP_ADDR -j $TARGET
+  done
+fi
+
+<span class="Gray"># ルールを保存する</span>
+service iptables save
+</span><span class="Gray">----------(vi ここまで)----------</span>
+
+# <span class="Blue">chmod +x check_black_ip.sh</span></pre>
+    <br />
+    
+    悪質なアクセス元 IP アドレスのリストを作成します。
+    <pre class="Console">
+# <span class="Blue">cd /usr/local/sbin/firewall</span>
+# <span class="Blue">vi black_ip_list</span>
+<span class="Gray">----------(vi ここから)----------</span><span class="Green">
+61.200.43.0/25|DROP             <span class="Gray"># 株式会社ウインズコミュニケーションズ</span>
+61.209.246.0/24|DROP
+111.223.192.0/24|DROP           <span class="Gray"># cyber-mailer.com</span>
+113.212.128.0/24|DROP
+116.214.80.0/20|DROP            <span class="Gray"># 株式会社ビーコンエヌシー</span>
+120.143.64.0/19|DROP
+124.146.214.0/24|DROP           <span class="Gray"># 株式会社サイバークリエイト(旧株式会社エルメデイア)</span>
+202.229.6.160/27|DROP
+210.150.128.0/24|DROP
+210.169.148.0/24|DROP           <span class="Gray"># 株式会社ウインズコミュニケーションズ</span>
+210.175.80.0/24|DROP
+210.175.83.0/24|DROP            <span class="Gray"># 株式会社プレミア mail-relay.jp</span>
+</span><span class="Gray">----------(vi ここまで)----------</span>
+</pre>
+    <br />
+    
+    悪質なアクセス元のチェックルールを登録します。
+    <pre class="Console">
+# <span class="Blue">/usr/local/sbin/firewall/check_black_ip.sh</span></pre>
+
+    <h2>フィードバック</h2>
+    記事の内容についてのご質問、ご指摘、その他ご意見等は、Weblog/Twitter にて受け付けております。
+    <p class="Indent1em">System House ACT Weblog 内記事 : <a href="/weblog/iptables.html">CentOS サーバー運用・管理情報 iptables</a></p>
+    トラックバックまたはコメントにてお寄せください。<br />
+    <br />
+    Twitter では <a href="#" id="TwitterLink"><span>.@systemact</span></a> 宛につぶやいてください。<br />
+    また、<a href="javascript:void(0)" onclick="SystemHouseACTjsLib.GetBitLy(); return false;">こちら</a> から、この記事についてつぶやくことができます。
+
+    <div id="BottomBox"></div>
+    <div id="Copyright">
+Copyright &copy; 2004-2011 System House ACT. All Rights Reserved.
+</div>
+  </div>
+  <div id="Logo"><a href="/"><img src="/images/act_logo.gif" alt="logo"></a></div>
+  <div id="Bar">a System House to build an Accounting system by the Computer Technology</div>
+  <div id="Menu">
+    <table id="MenuContents" cellspacing="0" summary="">
+<thead style="background-color:LimeGreen"><tr><td class="Center Font10p5 Bold PadMenu">-- Contents --</td></tr></thead>
+<tbody>
+<tr>
+  <td id="MnTop"
+      onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('')">
+    <a href="/">Top</a>
+  </td>
+</tr>
+<tr>
+  <td id="MnCareer"
+      onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('career.html')">
+    <a href="/career.html">代表の経歴</a>
+  </td>
+</tr>
+<tr>
+  <td id="MnTopServer"
+      onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('server/')">
+    <a href="/server/">サーバー構築・運用</a>
+    <div id="MnSubServer">
+      <table cellspacing="0" summary="">
+      <tr>
+        <td id="MnSubServerLVM" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('server/lvm.html')">
+          <a href="/server/lvm.html">LVM</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubMailXen" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('server/xen.html')">
+          <a href="/server/xen.html">Xen(仮想化)</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubServerIptables" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('server/iptables.html')">
+          <a href="/server/iptables.html">iptables</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubServerBIND" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('server/bind.html')">
+          <a href="/server/bind.html">ネームサーバー BIND</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubServerDHCP" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('server/dhcp.html')">
+          <a href="/server/dhcp.html">DHCPサーバー</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubServerNTP" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('server/ntp.html')">
+          <a href="/server/ntp.html">NTP</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubServerOpenSSL" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('server/openssl.html')">
+          <a href="/server/openssl.html" class="White">OpenSSL</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubServerOpenSSH" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('server/openssh.html')">
+          <a href="/server/openssh.html" class="White">OpenSSH</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubServerSwatch" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('server/swatch.html')">
+          <a href="/server/swatch.html" class="White">swatch</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubServerSubversion" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('server/subversion.html')">
+          <a href="/server/subversion.html" class="White">Subversion</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubServerMySQL" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('server/mysql.html')">
+          <a href="/server/mysql.html" class="White">MySQL</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubServerPHPMyAdmin" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('server/phpmyadmin.html')">
+          <a href="/server/phpmyadmin.html" class="White">phpMyAdmin</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubServerPostgreSQL" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('server/postgresql.html')">
+          <a href="/server/postgresql.html" class="White">PostgreSQL</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubServerProFTPD" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('server/proftpd.html')">
+          <a href="/server/proftpd.html" class="White">ProFTPD</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubMailClamAV" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('server/clamav.html')">
+          <a href="/server/clamav.html">Clam AntiVirus</a>
+        </td>
+      </tr>
+      </table>
+    </div>
+  </td>
+</tr>
+<tr>
+  <td id="MnTopMail"
+      onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('mail/')">
+    <a href="/mail/">メールサーバー</a>
+    <div id="MnSubMail">
+      <table cellspacing="0" summary="Sub Menu">
+      <tr>
+        <td id="MnSubMailPostfix" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('mail/postfix.html')">
+          <a href="/mail/postfix.html">Postfix</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubMailDovecot" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('mail/dovecot.html')">
+          <a href="/mail/dovecot.html">Dovecot</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubMailClamSMTP" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('mail/clamsmtp.html')">
+          <a href="/mail/clamsmtp.html">ClamSMTP</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubMailLibspf" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('mail/libspf2.html')">
+          <a href="/mail/libspf2.html">SPF Library</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubMailPolicydSPF" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('mail/policyd-spf.html')">
+          <a href="/mail/policyd-spf.html">Policyd SPF</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubMailPostgrey" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('mail/postgrey.html')">
+          <a href="/mail/postgrey.html">Postgrey</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubMailSquirrel" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('mail/squirrelmail.html')">
+          <a href="/mail/squirrelmail.html">SquirrelMail</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubMailPostfixAdmin" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('mail/postfixadmin.html')">
+          <a href="/mail/postfixadmin.html">Postfix Admin</a>
+        </td>
+      </tr>
+      </table>
+    </div>
+  </td>
+</tr>
+<tr>
+  <td id="MnTopWeb"
+      onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('web/')">
+    <a href="/web/">ウェブサーバー</a>
+    <div id="MnSubWeb">
+      <table cellspacing="0" summary="">
+      <tr>
+        <td id="MnSubWebApache" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('web/apache.html')">
+          <a href="/web/apache.html" class="White">Apache</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubWebTomcat" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('web/tomcat.html')">
+          <a href="/web/tomcat.html" class="White">Tomcat</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubWebAWStats" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('web/awstats.html')">
+          <a href="/web/awstats.html" class="White">AWStats</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubWebNucleus" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('web/nucleus.html')">
+          <a href="/web/nucleus.html" class="White">Nucleus</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubWebAipo" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('web/aipo.html')">
+          <a href="/web/aipo.html" class="White">Aipo</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubWebGroupOffice" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('web/groupoffice.html')">
+          <a href="/web/groupoffice.html" class="White">Group-Office</a>
+        </td>
+      </tr>
+      </table>
+    </div>
+  </td>
+</tr>
+<tr>
+  <td id="MnTopDevLinux"
+      onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/linux/')">
+    <a href="/develop/linux/">開発環境(Linux)</a>
+    <div id="MnSubDevLinux">
+      <table cellspacing="0" summary="">
+      <tr>
+        <td id="MnSubDevLinuxJava" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/linux/java.html')">
+          <a href="/develop/linux/java.html" class="White">Java SE JDK</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubDevLinuxPHP" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/linux/php.html')">
+          <a href="/develop/linux/php.html" class="White">PHP</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubDevLinuxCClient" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/linux/cclient.html')">
+          <a href="/develop/linux/cclient.html" class="White">c-client</a>
+        </td>
+      </tr>
+<!--
+      <tr>
+        <td id="MnSubDevLinuxCPAN" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/linux/cpan.html')">
+          <a href="/develop/linux/cpan.html" class="White">Perl - CPAN</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubDevLinuxBison" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/linux/bison.html')">
+          <a href="/develop/linux/bison.html" class="White">Bison</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubDevLinuxAnt" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/linux/ant.html')">
+          <a href="/develop/linux/ant.html" class="White">Ant</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubDevLinuxJSTL" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/linux/jstl.html')">
+          <a href="/develop/linux/jstl.html" class="White">JSTL</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubDevLinuxCodec" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/linux/codec.html')">
+          <a href="/develop/linux/codec.html" class="White">Commons Codec</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubDevLinuxStruts" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/linux/struts.html')">
+          <a href="/develop/linux/struts.html" class="White">Struts</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubDevLinuxLog4j" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/linux/log4j.html')">
+          <a href="/develop/linux/log4j.html" class="White">log4j</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubDevLinuxZlib" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/linux/zlib.html')">
+          <a href="/develop/linux/zlib.html" class="White">zlib</a>
+        </td>
+      </tr>
+-->
+      <tr>
+        <td id="MnSubDevLinuxLibwbxml2" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/linux/libwbxml2.html')">
+          <a href="/develop/linux/libwbxml2.html" class="White">libwbxml2</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubDevLinuxTNEF" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/linux/tnef.html')">
+          <a href="/develop/linux/tnef.html" class="White">TNEF</a>
+        </td>
+      </tr>
+      </table>
+    </div>
+  </td>
+</tr>
+<tr>
+  <td id="MnTopDevWin"
+      onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/windows/')">
+    <a href="/develop/windows/">開発環境(Windows)</a>
+    <div id="MnSubDevWin">
+      <table cellspacing="0" summary="">
+      <tr>
+        <td id="MnSubDevWinJava" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/windows/java.html')">
+          <a href="/develop/windows/java.html" class="White">Java SE JDK</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubDevWinPuTTY" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/windows/putty.html')">
+          <a href="/develop/windows/putty.html" class="White">PuTTY</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubDevWinXming" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/windows/xming.html')">
+          <a href="/develop/windows/xming.html" class="White">Xming</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubDevWinTortoiseSVN" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/windows/tortoisesvn.html')">
+          <a href="/develop/windows/tortoisesvn.html" class="White">TortoiseSVN</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubDevWinUTorrent" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/windows/utorrent.html')">
+          <a href="/develop/windows/utorrent.html" class="White">μTorrent</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubDevWinAnkhSVN" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/windows/ankhsvn.html')">
+          <a href="/develop/windows/ankhsvn.html" class="White">AnkhSVN</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubDevWinSandcastle" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/windows/sandcastle.html')">
+          <a href="/develop/windows/sandcastle.html" class="White">Sandcastle</a>
+        </td>
+      </tr>
+<!--
+      <tr>
+        <td id="MnSubDevWinPsqlODBC" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/windows/psqlodbc.html')">
+          <a href="/develop/windows/psqlodbc.html" class="White">psqlODBC</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubDevWinPHP" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('develop/windows/php.html')">
+          <a href="/develop/windows/php.html" class="White">PHP</a>
+        </td>
+      </tr>
+-->
+      </table>
+    </div>
+  </td>
+</tr>
+<tr>
+  <td id="MnTopEclipse"
+      onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('eclipse/')">
+    <a href="/eclipse/">Eclipse</a>
+    <div id="MnSubEclipse">
+      <table cellspacing="0" summary="">
+      <tr>
+        <td id="MnSubEclipseGEF" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('eclipse/gef.html')">
+          <a href="/eclipse/gef.html" class="White">GEF</a>
+        </td>
+      </tr>
+<!--
+      <tr>
+        <td id="MnSubEclipseEMF" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('eclipse/emf.html')">
+          <a href="/eclipse/emf.html" class="White">EMF/SDO/XSD</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubEclipseJEM" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('eclipse/jem.html')">
+          <a href="/eclipse/jem.html" class="White">Java EMF Model</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubEclipseTomcat" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('eclipse/tomcat.html')">
+          <a href="/eclipse/tomcat.html" class="White">Tomcat</a>
+        </td>
+      </tr>
+-->
+      <tr>
+        <td id="MnSubEclipseSubversive" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('eclipse/subversive.html')">
+          <a href="/eclipse/subversive.html" class="White">Subversive</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubEclipseAptana" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('eclipse/aptana.html')">
+          <a href="/eclipse/aptana.html" class="White">Aptana Studio</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubEclipsePDT" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('eclipse/pdt.html')">
+          <a href="/eclipse/pdt.html" class="White">PDT</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubEclipsePHPEclipse" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('eclipse/phpeclipse.html')">
+          <a href="/eclipse/phpeclipse.html" class="White">PHPEclipse</a>
+        </td>
+      </tr>
+<!--
+      <tr>
+        <td id="MnSubEclipseJBossIDE" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('eclipse/jbossIde.html')">
+          <a href="/eclipse/jbossIde.html" class="White">JBoss IDE</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubEclipseTomcatPlugin" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('eclipse/tomcatPlugin.html')">
+          <a href="/eclipse/tomcatPlugin.html" class="White">Tomcat Plugin</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubEclipseLomboz" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('eclipse/lomboz.html')">
+          <a href="/eclipse/lomboz.html" class="White">Lomboz Plugin</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubEclipseEPIC" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('eclipse/epic.html')">
+          <a href="/eclipse/epic.html" class="White">EPIC</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubEclipsePropertiesEditor" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('eclipse/propertiesEditor.html')">
+          <a href="/eclipse/propertiesEditor.html" class="White">Properties Editor</a>
+        </td>
+      </tr>
+-->
+      </table>
+    </div>
+  </td>
+</tr>
+<tr>
+  <td id="MnTopProduct"
+      onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('product/')">
+    <a href="/product/">製品情報</a>
+    <div id="MnSubProduct">
+      <table cellspacing="0" summary="">
+      <tr>
+        <td id="MnSubProductRental" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('product/rental.html')">
+          <a href="/product/rental.html" class="White">レンタル機械管理</a>
+        </td>
+      </tr>
+      <tr>
+        <td id="MnSubProductSingleItem" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('product/singleitem.html')">
+          <a href="/product/singleitem.html" class="White">個別商品管理</a>
+        </td>
+      </tr>
+<!--
+      <tr>
+        <td id="MnSubProductRakutenAPI" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('product/rakutenapitools/')">
+          <a href="/product/rakutenapitools/" class="White">楽天APIツール</a>
+        </td>
+      </tr>
+-->
+      </table>
+    </div>
+  </td>
+</tr>
+<tr>
+  <td id="MnBoinc"
+      onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('boinc/')">
+    <a href="/boinc/">BOINC(WCG)</a>
+  </td>
+</tr>
+<tr>
+  <td id="MnTopArchives"
+      onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('archives/')">
+    <a href="/archives/">Archives</a>
+    <div id="MnSubArchives">
+      <table cellspacing="0" summary="">
+      <tr>
+        <td id="MnSubArchivesDotNet" nowrap
+            onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('archives/dotnet/')">
+          <a href="/archives/dotnet/" class="White">.net関連資料</a>
+        </td>
+      </tr>
+      </table>
+    </div>
+  </td>
+</tr>
+<tr>
+  <td id="MnWeblog"
+      onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('weblog/')">
+    <a href="/weblog/">Weblog</a>
+  </td>
+</tr>
+<tr>
+  <td id="MnTwitter"
+      onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('twitter.html')">
+    <a href="/twitter.html">Twitter</a>
+  </td>
+</tr>
+<!--
+<tr>
+  <td id="MnJob"
+      onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('jobs/')">
+    <a href="/jobs/">案件情報</a>
+  </td>
+</tr>
+<tr>
+  <td id="MnHuman"
+      onMouseover="mOver(this)" onMouseout="mOut(this)" onClick="mClick('humans/')">
+    <a href="/humans/">人材情報</a>
+  </td>
+</tr>
+-->
+</tbody>
+</table>
+    <div id="Google"><form action="http://www.system-act.com/google.html" id="cse-search-box">
+  <div>
+    <input type="hidden" name="cx" value="partner-pub-3728753872821379:wx38lumt532" />
+    <input type="hidden" name="cof" value="FORID:10" />
+    <input type="hidden" name="ie" value="UTF-8" />
+    <input type="text" name="q" size="20" />
+    <input type="submit" name="sa" value="&#x691c;&#x7d22;" />
+  </div>
+</form>
+<script type="text/javascript" src="http://www.google.com/coop/cse/brand?form=cse-search-box&amp;lang=ja"></script></div>
+    <div id="LeftBox"><h2 style="margin-top:1em">広告リンク</h2>
+<div id="GoogleLink">
+<script type="text/javascript"><!--
+google_ad_client = "pub-3728753872821379";
+/* System House ACT, Side, 120x90 Link */
+google_ad_slot = "5809583967";
+google_ad_width = 120;
+google_ad_height = 90;
+//-->
+</script>
+<script type="text/javascript"
+src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</div>
+
+<!-- Yahoo! Ad Partner -->
+<div style="margin-top:1em">
+<SCRIPT TYPE="text/javascript" LANGUAGE="javascript">
+<!--
+var ywoc_ad_id="rd9Bm3yCXMf51tZDZI0tNGVwo0g-";
+var ywoc_ad_sid="R.dxUwGCXMecAGaXkhqeYA--";
+var ywoc_ad_siteurl="http%3A%2F%2Fwww.system-act.com%2F";
+var ywoc_ad_creativeid="001";
+var ywoc_ad_altad="PB";
+var ywoc_ad_alturl="";
+var ywoc_ad_signature="ada4bca98e08b18404cc5409aa2a3c3b5c02478d";
+var ywoc_ad_adserv="http://dcs.yahoo.co.jp/dcs_1_0/";
+var ywoc_adcl_title="0000CC";
+var ywoc_adcl_discription="333333";
+var ywoc_adcl_link="008200";
+var ywoc_adcl_frame="CCCCCC";
+var ywoc_adcl_background="FFFFFF";
+document.write('<SCR'+'IPT TYPE="text/javascript" LANGUAGE="javascript" SRC="'+
+  ywoc_ad_adserv+
+  '?adid='+ywoc_ad_id+
+  '&sid='+ywoc_ad_sid+
+  '&surl='+ywoc_ad_siteurl+
+  '&cid=' +ywoc_ad_creativeid+
+  '&alid='+ywoc_ad_altad+
+  '&aurl='+ywoc_ad_alturl+
+  '&sig=' +ywoc_ad_signature+
+  '&clt=' +ywoc_adcl_title+
+  '&cld=' +ywoc_adcl_discription+
+  '&cll=' +ywoc_adcl_link+
+  '&clf=' +ywoc_adcl_frame+
+  '&clb=' +ywoc_adcl_background+
+  '"> </SCR' + 'IPT>');
+--></SCRIPT>
+</div>
+
+<!-- Sanwa Direct Ad -->
+<div class="Center" style="margin-top:1em">
+<a href="http://click.linksynergy.com/fs-bin/click?id=YYotYoRvYMg&offerid=195537.10000011&type=4&subid=0"><IMG alt="サンワダイレクト" border="0" src="http://direct.sanwa.co.jp/linkshare/120x120_1.gif"></a><IMG border="0" width="1" height="1" src="http://ad.linksynergy.com/fs-bin/show?id=YYotYoRvYMg&bids=195537.10000011&type=4&subid=0">
+</div>
+
+<!-- Rakuten Dynamic Ad -->
+<div style="margin-top:1em">
+<!-- Rakuten Dynamicad FROM HERE -->
+<script type="text/javascript">
+<!-- 
+rakuten_template = "s_160_600_img";
+rakuten_affiliateId = "070a3934.f4955020.070a3935.6c1bafb2";
+rakuten_service = "ichiba";
+rakuten_target = "_top";
+rakuten_color_bg = "F8F8FF";
+rakuten_color_border = "3CB371";
+rakuten_color_text = "000000";
+rakuten_color_link = "0000FF";
+rakuten_color_price = "CC0000";
+//--></script>
+<script type="text/javascript"
+  src="http://dynamic.rakuten.co.jp/js/rakuten_dynamic.js">
+</script>
+<!-- Rakuten Dynamicad TO HERE -->
+</div>
+
+<!-- Micro Ad -->
+<div style="margin-top:1em">
+<script type="text/javascript"><!--
+in_uid = '192596';
+in_templateid = '11022';
+in_charset = 'UTF-8';
+in_group = 'ActLeftBox';
+in_matchurl = '';
+in_HBgColor = 'F0FFF0';
+in_HBorderColor = '009900';
+in_HTitleColor = '0000FF';
+in_HTextColor = '000000';
+in_HUrlColor = '20B2AA';
+frame_width = '160';
+frame_height = '240';
+--></script>
+<script type='text/javascript' src='http://cache.microad.jp/send0100.js'></script>
+</div>
+</div>
+  </div>
+</body>
+</html>

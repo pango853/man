@@ -1,0 +1,3 @@
+#Virtual domains
+kumano.no-ip.org	required to prevent relay access denied errors
+pango.ath.cx	required to prevent relay access denied errors

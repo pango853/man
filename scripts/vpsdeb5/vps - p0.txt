@@ -1,0 +1,24 @@
+
+# dpkg --list (packagename)
+# aptitude #package man
+# apt-get --purge remove hogehoge
+# apt-get source hogehoge
+# apt-get --reinstall install hogehoge
+# apt-cache show hogehoge　//パッケージ情報を表示する
+# apt-cache showpkg hogehoge　//パッケージの依存関係などを表示する
+# apt-cache search hogehoge　//キーワードを元にパッケージを検索する
+
+
+0. Common use
+
+# vi /etc/apt/sources.list
+	deb http://ftp.jp.debian.org/debian/ lenny main contrib non-free
+	deb-src http://ftp.jp.debian.org/debian/ lenny main contrib non-free
+	deb http://security.debian.org/ lenny/updates main contrib non-free
+	deb-src http://security.debian.org/ lenny/updates main contrib non-free
+	deb http://volatile.debian.org/debian-volatile lenny/volatile main contrib non-free
+	deb-src http://volatile.debian.org/debian-volatile lenny/volatile main contrib non-free
+
+# apt-get update
+
+

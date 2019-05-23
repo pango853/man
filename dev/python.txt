@@ -1,0 +1,157 @@
+
+
+###. Learn Python the Hard Way(ED3ADDISONWESLWY14).pdf
+
+###. Test-Driven Development with Python(OREILLY14).pdf
+
+
+
+###. Learning Python(PACKT15).pdf
+
+	http://pythontutor.com/
+
+	Decimal(3.14) vs Decimal('3.14') : The later is from string and has no approximation issues
+		Decimal('0.1') * Decimal(3) - Decimal('0.3') = 0.0
+
+	bytes_obj = b"A bytes object"
+		type(bytes_obj)
+
+	from operator import itemgetter
+		sorted(a, key=itemgetter(1), reverse=True)
+
+	Collections module:
+		namedtuple()
+		deque
+		ChainMap
+		Counter
+		OrderedDict
+		defaultdict
+		UserDict
+		UserList
+		UserString
+
+	from itertools import count
+	from itertools import compress
+	from itertools import permutations
+
+	nonlocal global
+
+	unpacking
+		call_func(*tuple)
+		call_func(**dict(a=1, b=2))
+		def func(**kwargs):
+
+	from functools import reduce
+		from operator import mul
+		reduce(mul, range(1, n+1), 1)
+
+	def moddiv(a, b):
+		return a // b, a % b
+
+	sys.getrecursionlimit() for recursive function call
+
+	list( filter( lambda k: not k % 5, range(n)) )
+
+	Function attributes:
+		__doc__
+		__name__
+		__qualname__
+		__module__
+		__defaults__
+		__code__
+		__globals__
+		__dict__
+		__closure__
+		__annotations__
+		__kwdefaults__
+
+	Built-in functions:
+		any
+		bin
+		bool
+		divmod
+		filter
+		float
+		getattr
+		id
+		int
+		len
+		list
+		min
+		print
+		set
+		tuple
+		type
+		zip
+		...
+
+	Check out the functions in the math module, they are very interesting!
+
+	from nose.tools import ( # multiline import
+		assert_equal,
+		assert_list_equal,
+		assert_not_in,
+	)
+
+	https://docs.python.org/3.4/howto/sorting.html#the-old-way-using-decorate-sortundecorate
+
+	Nested comprehensions:
+		pairs = [(items[i], items[j]) for i in range(len(items)) for j in range(i, len(items))]
+
+	generator.send() to stop (cause StopIteration)
+		sent = yield n
+		!: send() can only be used to resume the execution, not to start it. Only next() starts the execution of a generator.
+
+	yield from ( n**2 for n in range(start, end) )
+
+	List comprehensions:	[k**3 for k in range(10)]
+	Generator expressions:	(k**3 for k in range(10))
+
+	lambda *a: sum(a) vs lambda a: sum(*a)
+
+
+###. pip
+
+$ pip install --upgrade pip
+
+On Windows the recommended command is:
+> python -m pip install --upgrade pip
+
+###. virtualenv
+> pip install virtualenv
+
+> virtualenv -p D:\DEV\Python36\python.exe .lpvenv
+> .lpvenv\Scripts\activate
+> where python
+> path
+> deactivate
+
+###. PEP8
+
+pip install pep8
+pip install pyflakes # for syntax check
+pip install flake8 # for syntax check of Django
+
+$ pep8 --ignore=E221,E701,E202 --repeat *.py
+
+
+###. Quiz
+
+>>> s = [('yellow', 1), ('blue', 2), ('yellow', 3), ('blue', 4), ('red', 1)]
+>>> d = {}
+>>> for k, v in s:
+...     d.setdefault(k, []).append(v)
+
+# Trap!
+def func(a=[], b={}):
+	print(a)
+	print(b)
+	a.append(len(a))   # this will affect a's default value
+	b[len(a)] = len(a) # and this will affect b's one
+func()
+func()
+func()
+
+###. Note
+divmod()
+

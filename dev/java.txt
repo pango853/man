@@ -1,0 +1,32 @@
+
+
+javac -d classes -sourcepath src src/HelloWorld.java -encoding UTF-8
+java -cp classes HelloWorld
+
+
+Set _JAVA_LAUNCHER_DEBUG to 0 to show debug details.
+
+環境変数s
+	_JAVA_LAUNCHER_DEBUG
+	CLASSPATH
+	_JAVA_SPLASH_JAR and _JAVA_SPLASH_FILE
+	_JAVA_VERSION_SET
+
+#. JPA
+
+	Specification:	javax.persistence:javax.persistence-api:2.2
+	JPA provider:	org.eclipse.persistence:eclipselink:2.7.1
+	JPA provider:	org.hibernate:hibernate-core:5.1.11
+	DB connector:	mysql:mysql-connector-java:5.1.29
+
+@Version
+@OneToMany(mappedBy = "book")
+
+for testing
+	@Before
+	init()
+		emf = Persistence.createEntityManagerFactory("my-persistence-unit");
+	@After
+		emf.close()
+
+https://www.youtube.com/watch?v=GNN-FpNucmI

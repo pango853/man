@@ -1,0 +1,9 @@
+
+
+Windows Network Manager
+
+> netsh wlan show all
+> netsh wlan show profile
+> netsh wlan show profile name=xxx key=clear	(show saved password)
+
+> netsh wlan delete profile name=xxx
