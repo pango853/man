@@ -22,6 +22,13 @@
 - upfront	Payment requirements: Upfront, yearly
 - true-up	True-up Billing
 - caveats	Contract terms: 3 year minimum with some caveats
+- ephemeral
+- transitory
+- amenable
+- retrofit
+- adhere to
+- disastrous
+
 
 
 # Abbriviations
@@ -57,3 +64,7 @@ ICP		IBM Cloud Private								container
 FSI		Financial Services Industry						corporate
 
 
+
+# Phrases
+- The containerization of applications has become widely popular in recent years as microservices and cloud computing have **likewise exploded in popularity**.
+- **Increasing numbers of** companies are investing in container technology.
