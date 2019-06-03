@@ -1,4 +1,6 @@
 
+@ref https://docs.microsoft.com/en-us/azure/azure-functions/
+
 # Installations
 
 ## .NET Core 2.x SDK for Debian

@@ -39,4 +39,40 @@ Scripts to replace the distribution behind Windows Subsystem for Linux with any 
 
 REF: https://github.com/RoliSoft/WSL-Distribution-Switcher
 
+
+
+# Ubuntu distribution
+> # apt-get update
+> # apt install python3
+> # update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+> # update-alternatives --config python
+
+
+/home/pango/.local/bin
+
+
+> # apt-get install ssh
+
+> # /etc/init.d/ssh start
+
+> # ssh-keygen -A
+
+> # dpkg-reconfigure openssh-server
+=> Anyway, ssh cloudn't start!!
+
+
+
+
 TODO ...
+
+
+lxrun /install /y
+
+bash
+
+sudo apt update
+sudo apt upgrade -y
+
+lxrun /setdefaultuser root
+bash
+

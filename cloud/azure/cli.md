@@ -50,6 +50,7 @@ export PATH=$PATH:$HOME/bin
 > docker run -it microsoft/azure-cli
 > docker run -it -v ${HOME}/.ssh:/root/.ssh microsoft/azure-cli
 
+## CLI
 
 # Login
 

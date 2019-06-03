@@ -6,6 +6,49 @@ pip install ansible==2.6.14
 => Got error!
 
 
+
+# Install ansible
+$ sudo apt update
+$ sudo apt install software-properties-common
+$ sudo apt-add-repository ppa:ansible/ansible
+$ sudo apt update
+$ sudo apt install ansible
+
+
+OR
+pip install --user ansible
+pip install --user git+https://github.com/ansible/ansible.git@devel
+
+
+
+$ ansible --version
+
+
+
+$ ssh-keygen
+$ cd ~/.ssh
+$ ssh-copy-id [自機のIPアドレス]
+
+
+$ ssh-copy-id [アカウント名]@[対象クライアントのIPアドレス]
+
+
+```/etc/ansible/hosts
+[servers]
+192.168.×.×   # 自機のIPアドレス
+```
+
+$ ansible [自機のIPアドレス] -m ping
+
+``` test.yml
+- hosts: servers
+  tasks:
+    - name: Test ansible-playbook
+      debug: msg="Hello world!"
+```
+
+$ ansible-playbook test.yml
+
 # Tutorials
 
 ./roles/nginx/tasks/main.yml

@@ -222,3 +222,6 @@ If you decide to create a .REG file to add or edit Dos devices, add a second bac
 
 ## Enable Hyper-V
 > bcdedit /set hypervisorlaunchtype auto
+
+## コントロールパネル￥ネットワークとインターネット￥ネットワーク接続
+> ncpa.cpl
