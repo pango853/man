@@ -1,4 +1,20 @@
 
+# Create a PowerShell Workflow
+@ref https://docs.microsoft.com/ja-jp/azure/automation/automation-first-runbook-textual
+
+```ps
+Workflow MyFirstRunbook-Workflow
+{
+# Ensures you do not inherit an AzureRMContext in your runbook
+Disable-AzContextAutosave –Scope Process
+
+$Conn = Get-AutomationConnection -Name AzureRunAsConnection
+Connect-AzureRmAccount -ServicePrincipal -Tenant $Conn.TenantID `
+-ApplicationId $Conn.ApplicationID -CertificateThumbprint $Conn.CertificateThumbprint
+
+$AzureContext = Select-AzureRmSubscription -SubscriptionId $Conn.SubscriptionID
+}
+```
 
 # Configuring Azure for management through Azure Active Directory authentication
 

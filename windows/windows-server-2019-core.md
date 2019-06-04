@@ -18,7 +18,7 @@ version:10.0.17763 release on 2018/9/2
    ```cmd
    netsh interface ipv4 show config
    netsh int ip set address "Ethernet" static 172.16.0.2 255.255.255.0 172.16.0.1 1
-   netsh int ip set dns "Ethernet" 172.16.0.1 primary
+   netsh int ip set dns "Ethernet" static 172.16.0.1 primary
    netsh interface ip set dns "Ethernet" static 172.16.0.1
    // ?: netsh interface ip add dns "Ethernet" 8.8.8.8 index=2
    // ?: netsh interface ip add dns "Ethernet" 192.168.0.1 index=2   # ROUNTER IP?
@@ -138,6 +138,12 @@ Remove-WindowsFeature <feature-name> -Remove
 ISOをMountしてから、
 > DISM /Online /Add-Capability /CapabilityName:ServerCore.AppCompatibility~~~~0.0.1.0 /Source:D: /LimitAccess
 > DISM /Online /Add-Capability /CapabilityName:Browser.InternetExplorer~~~~0.0.11.0 /Source:D: /LimitAccess
+
+@ref https://docs.microsoft.com/ja-jp/windows-server/get-started-19/install-fod-19
+Mount-DiskImage -ImagePath drive_letter:\folder_where_ISO_is_saved\ISO_filename.iso
+$package_path = "D:\Microsoft-Windows-InternetExplorer-Optional-Package~31bf3856ad364e35~amd64~~.cab"
+Add-WindowsPackage -Online -PackagePath $package_path
+
 
 ## Top
 
@@ -350,6 +356,12 @@ cd 'C:¥Program Files¥Microsoft¥Web Platform Installer'
 .¥WebpiCmd.exe /Install /Products:WHP_Recommended /AcceptEula
 
 
+
+# Install PowerShell Core
+
+PowerShell CoreのWebCmdletsはIEへの依存が排除されており、また、新しいWEBの仕組みへの対応もいくつかなされています!
+> powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12;iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/stknohg/PSCoreUpdate/master/FirstTimeInstaller/Install-LatestPowerShell.ps1'))"
+> C:\Program Files\PowerShell\6\pwsh.exe
 
 # Desktop
 > Install-WindowsFeature Desktop-Experience
