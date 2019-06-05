@@ -5,6 +5,9 @@ pip install pywinrm
 pip install ansible==2.6.14
 => Got error!
 
+# Ubuntu
+> apt-get install python3-dev build-essential libssl-dev libffi-dev libxml2-dev libxslt1-dev zlib1g-dev
+> pip3 install ansible --user
 
 # Tutorials
 

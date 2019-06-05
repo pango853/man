@@ -69,7 +69,7 @@ Restart=always
 WantedBy=multi-user.target
 ```
 
-```/usr/local/src/prometheus/prometheus-server/prometheus.yml
+```/usr/local/src/prometheus/prometheus/prometheus.yml
 # my global config
 global:
   scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
@@ -102,6 +102,26 @@ scrape_configs:
         - '192.168.0.2:9100'
 ```
 
+```/usr/lib/systemd/system/prometheus.service
+[Unit]
+Description=Prometheus
+Wants=network-online.target
+After=network-online.target
+ 
+[Service]
+#User=prometheus
+#Group=prometheus
+Type=simple
+ExecStart=/usr/local/src/prometheus/prometheus/prometheus \
+  --config.file=/usr/local/src/prometheus/prometheus/prometheus.yml
+#    --config.file /etc/prometheus/prometheus.yml \
+#    --storage.tsdb.path /var/lib/prometheus/ \
+#    --web.console.templates=/etc/prometheus/consoles \
+#    --web.console.libraries=/etc/prometheus/console_libraries
+ 
+[Install]
+WantedBy=multi-user.target
+```
 
 
 # Run on Docker
