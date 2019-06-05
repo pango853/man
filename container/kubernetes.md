@@ -342,6 +342,73 @@ $ kubectl config use-context minikube
 $ eval "$(minikube docker-env)"
 
 
+# Install with kubeadm on GCP
+cat << /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7x86_64
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/yum-package-key.gpg
+EOF
+
+yum install kubeadm kubelet kubectl
+
+swapoff -a
+yum install docker -y
+systemctl start docker
+systemctl enable docker
+cat /proc/sys/net/bridge/bridge-nf-call-iptables
+echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables
+kubeadm init -pod-network-cidr=192.168.0.0/16 -apiserver-advertise-address=172.16.1.10
+
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+kubectl apply -f podnetwork.yaml # With options
+See https://kubernetes.io/docs/concepts/cluster-administration/addons/ and
+
+kubeadm join 172.16.1.10:6443 -token xxxxxxxxxxxxxxxxx -discovery-token-ca-cert-hash sha256:cccccccccccccccccccccfffff...
+docker images
+docker ps
+mkdir -p $HOME/.kube
+cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+chown $(id -u):$(id -g) $HOME/.kube/config
+kubectl get nodes
+kubectl get ns
+kubectl get pods -all-namespaces
+
+wget https://git.io/weave-kube-1.6
+kubectl apply -f weave-kube-1.6
+
+kubectl get pods -o wide -all-namespaces
+kubectl get nodes
+kubeadm token list
+
+ssh node1
+	free -m
+	vim /etc/fstab
+	swapoff -a
+	mount -a
+	yum install kubeadm kubelet docker
+	systemctl start docker
+	systemctl enable docker
+	kubeadm join 172.16.1.10:6443 -token xxxxxxxxxx -discovery-token-ca-cert-hash sha256:ccccccccccccffffffffff
+
+kubectl get nodes	# to see if node1 is there
+kubectl run nginx -image=nginx -port 80
+kubectl get pods -o wide
+kubectl delete pod nginx-11111111111-222222
+kubectl get pods
+kubectl get deployment
+kubectl expose deployment nginx -type=NodePort -name=expose-nginx
+kubectl get svc
+	expose-nginx NodePort xx.yyy.zzz.www 80:31332/TCP 16s
+Access http://NODE-IP:31332/
+
+
 
 # TODO
 - 外部ロードバランサとの連携

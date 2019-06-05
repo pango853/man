@@ -6,6 +6,24 @@
 
 MSI <https://aka.ms/installazurecliwindows> OR install on WSL.
 
+## PowerShell
+@ref https://docs.microsoft.com/en-us/powershell/azure/install-az-ps?view=azps-2.1.0
+
+$PSVersionTable.PSVersion > 5.0
+Install-Module -Name AzureRM -AllowClobber # OLD!
+
+$PSVersionTable.PSVersion > 5.1
+Install-Module -Name Az -AllowClobber
+Install-Module -Name Az -AllowClobber -Scope CurrentUser
+Install-Module -Name Az -AllowClobber -Force       # For update
+(New-Object System.Net.WebClient).Proxy.Credentials = `
+  [System.Net.CredentialCache]::DefaultNetworkCredentials
+
+Get-Command -Verb Get -Noun AzVM* -Module Az.Compute
+
+Connect-AzAccount
+
+
 ## apt
 sudo apt-get update
 sudo apt-get install curl apt-transport-https lsb-release gpg
@@ -50,6 +68,7 @@ export PATH=$PATH:$HOME/bin
 > docker run -it microsoft/azure-cli
 > docker run -it -v ${HOME}/.ssh:/root/.ssh microsoft/azure-cli
 
+## CLI
 
 # Login
 

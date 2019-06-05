@@ -56,6 +56,24 @@ For certificate verify:
 	[http]
 		sslcainfo = C:/Users/[UserName]/AppData/Local/Programs/Git/etc/pki/ca-trust/extracted/openssl/ca-bundle.trust.crt
 
+# Command Examples
+
+## Merge 2 different git repositories
+```
+git clone git@github.com:pango853/repo1.git
+git remote add upstream git@github.com:pango853/repo2.git
+git fetch upstream
+git merge --allow-unrelated-histories upstream/master
+git add .
+git commit -m "I merged it!"
+git push -u origin master
+```
+
+## Archive
+```
+git archive --format=zip -o patch.zip a9359f9 $(git diff --name-only a9359f9^..a9359f9)
+git archive --format=zip HEAD -o patch.zip __PATH__/__FILE__
+```
 
 
 

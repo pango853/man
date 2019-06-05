@@ -317,3 +317,9 @@ misc:
 	yum install httpd-tools
 	ab -n 30000 -c 20 http://hello-myproject.cloudapps.lab.example.com/
 	oc adm top node --heapster-namespace=openshift-infra --heapster-scheme=https
+
+	docker-registry-cli xxx:5000 search <IMAGE>
+	OR
+	GET :5000/v2/_catalog
+	GET :5000/v2/<IMAGE>/tags/list
+

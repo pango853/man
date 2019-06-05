@@ -203,6 +203,34 @@ $> go install ./*SUBSUB*
 
 => $GOPATH/pkg/linux_amd64/github.com/*$USER*/*$PROJECT*/*SUB*/*SUBSUB*.a
 
+# Data IO
+> n, err := fmt.Scanf("%d", &choice)
+
+> fh, err := os.Open("...")
+> defer fh.Close()
+> _, err := fmt.Fscanf(fh, "%s %d %d %s\n", &name, &diam, &moons, &hasRing, )
+> err == io.EOF
+
+> fw, err := os.Create("...")
+> writer := bufio.NewWriter(fw)
+
+> scanner := bufio.NewSscanner(file)
+> scanner.Split(bufio.ScanLines)
+> for scanner.Scan(){ scanner.Text() }
+
+> var books bytes.Buffer
+> books.WriteString("xxx")
+> books.WriteString("yyy")
+> books.WriteTo(os.Stdout) or books.WriteTo(fw)
+
+> enc := gob.NewEncoder(fh)
+> if err:= enc.Encode(objectArray); err != nil {fmt.Println(err)}
+
+
+1041319315
+
+
+
 # Concurrency
 - Goroutines
   > go func(){...}()
