@@ -2,6 +2,10 @@
 Planning your installation: https://docs.openshift.com/container-platform/3.11/install/index.html
 
 
+TODO: http://enakai00.hatenablog.com/entry/2016/01/05/153316
+
+
+
 # Install OpenShift 4 on AWS
 
 1. Route54

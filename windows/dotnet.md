@@ -44,3 +44,14 @@ notepad Pages/Index.cshtml
 	<h1>Hello, world!</h1>
 	<p>The time on the server is @DateTime.Now</p>
 
+
+# Tools
+- .NET Portability Analyzer
+  https://marketplace.visualstudio.com/items?itemName=ConnieYau.NETPortabilityAnalyzer
+  @ref https://blogs.msdn.microsoft.com/appconsult/2018/10/29/move-your-first-steps-with-net-core-3-0-for-desktop-development/
+- .NET API analyzer (Microsoft.DotNet.Analyzers.Compatibility)
+  https://docs.microsoft.com/en-us/dotnet/standard/analyzers/api-analyzer
+- Convert your old project files to the new 2017 format
+  https://github.com/hvanbakel/CsprojToVs2017
+
+
