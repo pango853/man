@@ -44,6 +44,9 @@ notepad Pages/Index.cshtml
 	<h1>Hello, world!</h1>
 	<p>The time on the server is @DateTime.Now</p>
 
+# Compile
+> C:\Windows\Microsoft.NET\Framework\v3.5\csc.exe /reference:System.Data.SQLite.dll /platform:x86 /target:winexe MyProgram.cs
+
 
 # Tools
 - .NET Portability Analyzer
@@ -55,3 +58,6 @@ notepad Pages/Index.cshtml
   https://github.com/hvanbakel/CsprojToVs2017
 
 
+# TODO
+- https://docs.microsoft.com/en-us/previous-versions/msp-n-p/ee817674(v=pandp.10)
+- https://docs.microsoft.com/en-us/dotnet/api/system.windows.application.startup?view=netframework-4.8
