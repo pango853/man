@@ -234,3 +234,38 @@ Invoke-WebRequest -Uri 'https://gist.githubusercontent.com/PlagueHO/d9595cae1788
 https://docs.microsoft.com/ja-jp/virtualization/windowscontainers/quick-start/quick-start-windows-10
 https://blog.docker.com/2016/09/build-your-first-docker-windows-server-container/
 https://www.outsystems.com/blog/posts/deploying-kubernetes-to-run-windows-containers/
+
+
+# Troubleshooting
+
+https://www.xlsoft.com/jp/blog/blog/2019/02/25/post-5912/
+
+[23:55:18.591][Notifications     ][Error  ] 
+
+Unable to create - ユーザー設定変数 "ErrorActionPreference" または共通パラメーターが Stop に設定されているため、
+実行中のコマンドが停止しました。コンピューター '.' を解決できませんでした。
+マシン名を正しく入力したことと、ネットワークにアクセスできることを確認してください。
+
+
+C:\Program Files\Docker\Docker\resources
+.\MobyLinux.ps1 -Destroy -VhdPathOverride D:\ProgramData\DockerDesktop\vm-data\DockerDesktop.vhdx
+.\MobyLinux.ps1 -Create -VhdPathOverride D:\ProgramData\DockerDesktop\vm-data\DockerDesktop.vhdx
+
+## Removing "Stale" Network Adapters in Hyper-V VM
+Remove Hyper-V virtual Ethernet switch
+
+Start an administrator command prompt;
+> set devmgr_show_nonpresent_devices=1
+> start devmgmt.msc
+> netcfg -d
+
+
+# LCOW
+Linux Containers on Windows (LCOW)
+https://success.docker.com/article/how-to-enable-linux-containers-on-windows-server-2019
+
+
+# Commands
+
+> docker run --isolation hyperv -it microsoft/nanoserver cmd
+
