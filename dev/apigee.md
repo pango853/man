@@ -387,7 +387,69 @@ Overview of the basic concepts of APIs.
 
 1.2.2. Traffic Management and Rate Limiting
 	`https://d3c33hcgiwev3.cloudfront.net/_3216b295b127db750cd2362217c98f64_Traffic-Management-and-Rate-Limiting.pdf?...`
-	TODO ???
+	Traffic management policies
+		3 policy types. Let you configure cache, control traffic quotas and spikes, set concurrent rate limits, and so on.
+		- enforce quotas
+		- mitigate denial of service attacks
+		- cache also can be accessed via policies to manage traffic and handling of requests
+	Traffic Management Policy - Spike Arrest
+		Spike arrest
+			is a technical requirement to protect the backend as opposed to Ouota or Rate Limit which is a business requirement to manage developer relationships
+			REF: http://docs.apigee.com/api-services/reference/spike-arrest-policy#howspikearrestworks
+		Spike arrest and Denial of Service
+			Spike Arrest monitors the rate at which traffic comes in, it doest not count each request by putting them in timed buckets
+		Spike arrest configuration
+			- Identifier
+			  - Mechanism to scope your incoming traffic
+			  - Uses a seperate rate for each unique Id
+			- Message weight
+			  - Used to give extra weight to conditioned reqeusts
+			- Rate
+			  - Specifies the rate you want to allow traffic to come into your API Proxy
+			  - Rate is for each Message Processors
+			  - Rate is formatted with a number and a unit. Unit is defined as ps(per second), pm(per minute)
+			  Example:
+			  ```
+			  <SpikeArrest async="false" continueOnError="false" enabled="true" name="Spike-Arrest">
+			  	<Identifier ref="client_id"/>
+			  	<MessageWeight ref="request.header.weight"/>
+			  	<Rate>3ps</Rate>
+			  </SpikeArrest>
+			  ```
+	Traffic Management Policy - Quota
+		Quota
+			to allow a defined number of requests to an entity
+			for business logic requirements normally, unlike Spike Arrest or Concurrent Rate Limit policies for security reequirements
+			uses buckets of requests per time unit, unlike spike arrest limits based on the rate of traffic
+			once limit is reached all requests will be rejected
+		Quota configurations
+			- Identifier
+			  - Mechanism to scope your incoming traffic
+			  - Uses a separate bucket for each unique Id
+			- Message weight
+			  - Used to give extra weight to conditioned requests
+			- Allow
+			  - Secifies the number of requests allowed for q particular entity
+			- Time Unit
+			  - Month, Day, Week, Minute, Year
+			- Interval
+			  - Frequency of the time unit
+		Quota type
+			- calendar (default)	Quota counting has an explicit <StartTime>. Resets based on <Interval> and <TimeUnit>
+			- rollingwindow			rolling window that resets based on <Interval> and <TimeUnit>. The start time is from the first message received matching the <Identifier>
+			- flexi					allows access for a specified period of time. Start time is dynamic for each each <Identifier> based on first message being received. Calls can be used until interval has elapsed.
+			REF: http://docs.apigee.com/api-services/reference/quota-policy#quotapolicytypes
+		Distributed quotas
+			- <Distributed>	specifies whether the count is shared among all message processors (true) or maintained separately (false)
+			- <Synchronous>	specifies whether the distributed quota counter is updated synchronously
+			- <AsynchronousConfiguration>	specifies how an asynchronous distributed quota is updated
+			- <PreciseAtSecondsLevel>		the quota will be enforeced with an accuracy of second if true, even if the <TimeUnit> is set at a unit longer than a second
+	Traffic Management Policy - Concurrent Rate Limit
+		- Throttles inbound connections		API proxies <--> backend services
+		- Specific placement requirements: it must be attached on both the Request and Response flows in the Target Endpoint.
+		  It is recommended that you place it in a DefaultFaultRule to ensure that the rate limit counters are maintained correctly even in the event of an error
+		- Limit the traffic to a manageable number of connections
+	REF: http://docs.apigee.com/api-services/content/comparing-quota-spike-arrest-and-concurrent-rate-limit-policies
 1.2.3. Protection Against Content Based Attack
 	Content Based Attacks
 	- Message content is a significant attack vector
@@ -502,7 +564,7 @@ Overview of the basic concepts of APIs.
 					- Value: 5pm
 	Part 3: Test
 		Select `Develop`, then `API Proxies`
-			Select the product and lick the `Trace` tab and start a trace session.
+			Select the product and lick the `TRACE` tab and start a trace session.
 				Open Postman, send GET /products with API Key.
 				Then click the Verify API Key policy in the trace session to show more information.
 					You will find from `Phase Details`,
@@ -530,7 +592,7 @@ Overview of the basic concepts of APIs.
 				</Quota>
 				```
 	Part 2: Test Quota
-		Click the `Trace` tab, start a new Trace session,
+		Click the `TRACE` tab, start a new Trace session,
 			Open Postman and send multiple requests to GET /products with APIKey till you see a QuotaViolation error returned in the response.
 			Go to Publish Products, edit the Product and change the Quota to 200.
 			Try calling GET /products again to see the error is gone.
@@ -547,7 +609,7 @@ Overview of the basic concepts of APIs.
 			</SpikeArrest>
 			```
 	Part 4: Test Spike Arrest
-		Click the `Trace` tab and start a new Trace session,
+		Click the `TRACE` tab and start a new Trace session,
 			send multiple requests to GET /products with APIKey from Postman to see the SpikeArrestViolation error
 			Go to Publish Apps, edit the products-app to change the custom attribute named spike-arrest to 200pm to update Quota policy to a higher number
 			Try calling GET /products to see if the error is gone.
@@ -573,14 +635,38 @@ Overview of the basic concepts of APIs.
 					</RegularExpressionProtection>
 					```
 	Part 2: Test
-		
+		Go to the `TRACE` tab and start a new session.
+			Open Postman and send request to POST /products with APIKey(Regex)
+				Because the attribute has SQL code that is being injected so you will see the policy got executed and raised an error response.
 	Part 3: JSON Threat Protection policy
+		Select `Develop` > `API Proxies`, and select your products API proxy, click `DEVELOP` tab
+			Click `Create New Product` followed by `+ Step`,
+				In the `Add Step` window, select `JSON Threat Protection` policy, enter JSONThreatProtection as the Display Name, click Add and add as below, click Save.
+					```
+					<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+					<JSONThreatProtection async="false" continueOnError="false" enabled="true" name="JSONThreatProtection">
+						<DisplayName>JSONThreatProtection</DisplayName>
+						<Properties/>
+						<ArrayElementCount>5</ArrayElementCount>
+						<ContainerDepth>2</ContainerDepth>
+						<ObjectEntryCount>6</ObjectEntryCount>
+						<ObjectEntryNameLength>50</ObjectEntryNameLength>
+						<Source>request</Source>
+						<StringValueLength>250</StringValueLength>
+					</JSONThreatProtection>
+					```
 	Part 4: Test
+		Go to the `TRACE` tab and start a new session.
+			Open Postman and send a request to POST /products with APIKey (JSONThreat) to see the error response.
 1.4. Quiz
+	1/3 Another name for the Client ID?			The Consumer Key
+	2/3 The Verify API Key Policy should be added to the Post Flow?			FALSE
+	3/3 Which are out of the box Apigee Policies that can protect your APIs against content based attacks?			Regular Expression Protection Policy, JSON Threat Protection Policy and XML Threat Protection Policy
 1.4.1. API Security Fundamentals
 ### Module 2 - OAuth and Network Security
 2.1. OAuth
 2.1.1. Module Overview
+	wide variety of options for OAuth, like various grant types for API proxy
 2.1.2. OAuth Introduction
 2.1.3. Practice Quiz
 2.1.4. Client Credentials Grant Type
@@ -697,7 +783,7 @@ Overview of the basic concepts of APIs.
 	To deploy or undeploy a proxy,
 		Edge UI > `Deployment` drop-down on the API Proxy page > click on environment name, green here means it is now deploying to.
 			After undeployed, the request fails with "Unable to identify proxy for host". You can try GET /products/{id} on Postman tool after undeployed it.
-	Click on the `Trace` tab from the `Products` API Proxy page,
+	Click on the `TRACE` tab from the `Products` API Proxy page,
 		select the correct environment from the `Deployment to Trace` drop-down,
 			click the `Start Trace Session` button and then invoke the `GET /products/{id}` request in Postman
 				check the transaction appears in the `Transactions` section and its flow in the `Transaction Map` section,
