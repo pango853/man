@@ -1,0 +1,21 @@
+
+
+sudo /sbin/ifconfig en1 down
+sudo ifconfig en1 ether 00:1E:68:E8:19:83
+sudo /sbin/ifconfig en1 up
+
+sudo /sbin/ifconfig en0 down
+sudo ifconfig en0 ether 00:1E:68:E8:19:83
+sudo /sbin/ifconfig en0 up
+
+
+
+sudo /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -z
+sudo ifconfig en1 ether 00:24:d6:12:d6:36
+
+
+sudo ifconfig en1 ether 00:1E:68:E8:19:83
+
+
+
+

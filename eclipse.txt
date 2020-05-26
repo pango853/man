@@ -1,0 +1,18 @@
+
+
+
+###. plugin.properties mechanism on RCP
+
+In MANIFEST.MF
+	Bundle-Localization: plugin
+
+[TRY]
+	Bundle bundle = Platform...;
+	bundle.getEntry("__PATH__");
+	bundle.findEntries("__PATH__", "_FILEPATTERN_", true);
+
+[TRY]
+	this.getClass().getClassLoader().getResourceAsStream("/plugin.properties");
+		
+
+

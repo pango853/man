@@ -1,0 +1,27 @@
+
+###. Dash (-)
+ Mean STDIN or STDOUT sometimes. Depend on the context.
+
+	cd -
+	#=#
+	cd $OLDPWD
+
+	echo hello > -	# As filename
+	#=#
+	echo hello > /dev/stdout
+
+	cat -	# STDIN
+	cat ./-	# As filename
+
+	ls -l | diff - /old_ls_output.txt
+
+
+###. Double dash (--)
+Signify the end of command options
+Mark the end of parameter (option) list.
+
+	compgen -W "foo bar baz" -- b
+	grep -- -v file
+	vim -- -.txt
+	rm -- -.txt
+

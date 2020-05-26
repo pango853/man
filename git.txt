@@ -1,0 +1,8 @@
+
+
+#. Cancel a commit
+	git commit --amend
+	git reset --soft HEAD^
+	git reset --hard HEAD^
+
+

@@ -1,0 +1,898 @@
+Intel Macのトリプルブート環境
+
+!! So far, only Intel Mac can work.
+
+尚、ここでのトリプルブート環境とはIntel Macの内蔵HDDにMac OS X, Windows, LinuxをインストールしてrEFItブートメニューから起動OSを選択できる環境を指します。
+※ここではUSBデバイスからブートできないファームウェアを前提に各OSをIntel Macの内蔵HDDにインストールします。
+※Windowsの場合は元々USBやIEEE1394のポートに接続されたディスクへのインストールはできないという制限があります。
+
+更に、トリプルブート環境のGRUBブートローダを使用することで4番目のOS, 5番目のOS等も追加インストールして利用できます。
+今回のトリプル環境でのWindowsはWindows Vista(32ビット版)を使用し、LinuxについてはFedora 7(32ビット版)を使用しています。
+※Fedora 7の選択理由は後述のGPT/MBRのハイブリッドに対応したGRUBブートローダを実現しているためです。
+またFedora 7(32ビット版)のGRUBからブートして利用する4番目のOSはFedora 7(64ビット版)とし、5番目のOSはCentOS 5(32ビット版)としました。
+最後はUSBメモリにDebian GNU/Linux 4.0をインストールして実行してみます。
+
+今回使用したBoot Campは2007年8月8日にリリースされたBoot Camp Public Beta 1.4(期間限定版)です。
+rEFIt(ver 0.10)についてはトリプルブート環境構築の試行ということでUSBメモリに導入しました。
+
+
+
+１．マシン環境
+
+    CPU：Intel Core 2 Duo ※VT対応の64ビットCPU
+    LAN：内蔵Ethernet(Marvell Yukon 88E8053 PCI-E Gigabit Ethernet Controller)
+    グラフィックス：Intel GMA 950
+    内蔵HDD容量：80GB
+    Mac OS Xバージョン：10.4.10
+    Windows：Windows Vista Ultimate(32ビット版)
+    Linux：Fedora 7(32ビット版)
+
+
+
+
+２．トリプルブート環境構築手順の流れ
+
+トリプルブート環境を構築する手順の流れは以下の通りです。
+
+    Boot Campの導入
+    Mac Windows Driversディスクの作成
+    USBメモリへのrEFItの導入
+    Mac OS X内蔵HDDへの2パーティション追加
+    Windows Vistaのインストール
+    Windows VistaへのMacディスク読み書きツールの導入(任意)
+    Fedora 7のインストール
+    Windows Vistaの修復
+    トリプルブート確認
+
+
+
+
+３．Boot Campの導入
+
+Apple社のサイトからBoot Camp Public Beta 1.4(BootCamp1.4.dmg)をダウンロードしてマウントします。
+マウントして表示されるBoot Camp Assistantフォルダ中のInstall Boot Camp Assistant.mpkgをインストールします。
+このインストールでアプリケーションフォルダの「ユーティリティ」中に「Boot Camp アシスタント」が作成されますが、
+トリプルブート環境構築ではこの「Boot Camp アシスタント」のMac Windows Driversディスク作成機能だけを使用します。
+
+
+
+４．Mac Windows Driversディスクの作成
+
+Boot Camp アシスタントを起動し、画面のガイドに従ってMac Windows Driversディスク(CD-R)を作成します。
+このMac Windows Driversディスクにはディスプレイドライバやサウンドドライバ等が格納されます。
+※このMac Windows DriversディスクはWindows XP SP2またはWindows Vista専用でありWindows XP SP1環境では利用できません。
+
+尚、Boot Camp アシスタントを起動してそのウィザードを使用しなくてもMac Windows Driversディスク(CD-R)は作成できます。
+具体的にはまず「Boot Camp アシスタント」の右クリックメニューから＜パッケージの内容を表示＞を実行します。
+次にそのContentsフォルダのResourcesフォルダにあるDiskImage.dmgをディスクユーティリティの「ディスクを作成」でCD-Rに書き込みます。
+それによって「Mac Drivers」というボリュームのCD-Rが出来上がります。
+
+
+
+５．USBメモリへのrEFItの導入
+
+    USBメモリの初期化
+    rEFIt(ブートマネージャ)を導入するには約16MBの容量が必要です(今回は256MBのUSBメモリを使用)。
+    まずディスクユーティリティを使用してUSBメモリを「Mac OS 拡張形式」(HFS+)でフォーマットします(ジャーナル機能は不要)。
+    ※USBメモリが工場出荷時のMS-DOS形式でフォーマットされているままではrEFItをインストールしても利用できません。
+    ボリューム名称は任意ですがここでは「Macboot USB」とします。
+
+    rEFItの入手
+    http://refit.sourceforge.net/からrefit-bin-0.10.tar.gzをダウンロードします。
+
+    USBメモリへのrEFItのコピー
+    refit-bin-0.10.tar.gzを解凍してできるフォルダ中のefiフォルダをそのままMacboot USBにコピーします。
+    Macboot USBを起動ディスクとして使用できるようにするためにblessコマンドを実行する必要がありますが、
+    refit-bin-0.10.tar.gzの中にはそのblessコマンドを自動実行するためのシェルファイル(enable.sh)が含まれています。
+    ※gptsync.efi等のユーティリティも含まれています。
+
+    ターミナルを起動して以下の操作を行います(今回はrefit.confのカスタマイズはしません)。
+    $ cd "/Volumes/Macboot USB"
+    $ cd efi/refit
+    $ ./enable.sh ※このenable.shを実行して再起動する際にOptionキーを押すと起動ディスクアイコン一覧に「rEFIt」が追加表示されます。
+
+    USBメモリに導入したrEFIt付属のアイコン
+    rEFItにはrEFItブートメニュー画面で使用されるアイコンが付属しています。
+
+
+
+
+
+
+６．Mac OS X内蔵HDDへの2パーティション追加
+
+Mac OS X内蔵HDDにWindowsとLinuxをインストールするためのパーティション(ボリューム)を用意します。
+
+Boot CampアシスタントではWindows用パーティション(Boot Campパーティション)1個しか作成できないため、
+diskutilのresizeVolumeを使用して既存パーティションサイズを縮小させて2個のパーティションを追加します。
+尚、ここで作成するボリュームは以下の通りとします。
+(1)Macintosh HDボリューム：50GBに減らします。
+(2)Linux用ボリューム：6GB
+(3)Windows用ボリューム：18GB
+※Boot CampパーティションとなるWindows用ボリュームは必ず最後のボリュームとなるようにします(今回はdisk0s4)。
+
+diskutil resizeVolumeは以下のように指定して実行します。
+
+$ diskutil resizeVolume disk0s2 50G "Linux" "MacLinux" 6G "MS-DOS FAT32" "MacWindows" 18G
+※ボリューム名は後で使用しませんので暫定的な名称で構いません。
+【コマンドの実行表示】
+Started resizing on disk disk0s2 Macintosh HD
+Verifying
+Resizing Volume
+Adjusting Partitions
+
+Finished resizing on disk disk0s2 Macintosh HD
+You will need to manually reformat your new partitions.
+WARNING: You must now reboot!
+
+
+Mac OS Xを再起動します。
+
+再起動後にパーティション構成を確認します。
+
+$ diskutil list /dev/disk0
+【コマンドの実行表示】
+※下記表示からは分かりにくいですが実はdisk0s2とdisk0s3の間に128MBの未割り当て領域が存在します。
+(「sudo gpt -r show /dev/disk0」のコマンドならそれが確認できます)
+
+/dev/disk0
+   #:                   type name               size      identifier
+   0:  GUID_partition_scheme                    *74.5 GB  disk0
+   1:                    EFI                    200.0 MB  disk0s1
+   2:              Apple_HFS Macintosh HD       50.0 GB   disk0s2
+   3:   Microsoft Basic Data                    6.0 GB    disk0s3
+   4:   Microsoft Basic Data                    18.2 GB   disk0s4
+
+
+尚、Boot Campアシスタント以外でパーティションを追加した後はBoot Campアシスタントを利用できなくなります。
+Boot Campアシスタントを起動すると次のようなメッセージダイアログが表示されます。
+
+
+
+
+
+
+７．Windows Vistaのインストール
+
+Windows VistaのインストールDVDをドライブにセットし、Cキーを押しながら電源投入します。
+これによってWindows Vistaのインストーラが起動されます。
+
+Windows Vistaのインストールは、言語設定後に＜今すぐインストール＞をクリックして進めます。
+ここでの注意点はWindows Vistaのインストール中にパーティション変更操作(パーティションの削除・追加等)を行わないということです。
+パーティション変更操作を実施してもWindows Vistaをインストールして実行することはできますがMac OS Xの「起動ディスク」画面に「Windows(Untitled)」というボリュームが表示されなくなります。
+更に、VMware FusionにおいてそのWindows用パーティション(Boot Campパーティション)からのゲストOSブートができなくなります。
+
+このような制約があるためWindows Vistaのインストール先はデフォルト表示される「ディスク0 パーティション 4」のままとする必要があります。
+
+またWindows VistaのインストールはBoot Campからの起動としていないためインストール中の再起動はOptionキーを押してWindowsディスクを選択してブートします。
+
+Windows Vistaをインストールした環境では以下のようになります(この時点ではまだデュアルブート環境)。
+(1)内蔵Ethernet(有線)でのネットワーク利用は可能です。
+(2)AirMacについてはWindows Vista標準の「ワイヤレスネットワークの管理」からWEP等の設定をして利用可能となります。
+(3)サウンド再生はできません(Windows Vistaには対応するサウンドドライバが無いようです)。
+(4)ディスプレイアダプタは「Mobile Intel 945GM Express Chipset Controller 0」用ドライバが自動インストールされ1600x1200の解像度でもAero対応となります。
+
+
+
+(5)Mac OS X側の起動ディスクには「Windows(Untitled)」が追加されます。
+(6)Mac OS X側のディスクユーティリティにもUntitledボリュームのマウント先やフォーマット(Windows NT ファイルシステム)が表示されます。
+(7)MacキーボードとPCキーボードについて：
+
+    Macキーボード
+
+        特殊記号入力：問題なし
+        チルダ(~), |, \, アンダーバー(_)等の記号入力は問題なく行えます。
+        IME言語バーの入力モード切り替え：不便
+        Macキーボードの「かな」「英数」キーによるIME言語バーの「あ」と「A」の入力モード切り替えはできません。
+        IME言語バーの入力モードをマウスで選択して切り替えます。
+        画面キャプチャ：不可
+        PCキーボードにあるPrintScreenキーはMacキーボードにはありません。
+        このためWindows Vistaをインストールしただけではキー操作による画面/ウィンドウキャプチャはできません。
+        後に述べるMac Windows Drivers(Apple Keyboard Support含)を導入すればF14キーやOption+F14キーで画面キャプチャできるようになります。
+        テンキー：問題なし
+        テンキーをもつMacキーボードではテンキーによる数字入力が問題なくできます。
+
+    PCキーボード
+
+        特殊記号入力：問題なし
+        Macキーボード同様にチルダ(~), |, \, アンダーバー(_)等の記号入力は問題なく行えます。
+        バックスラッシュキーは「\」入力となります。
+        IME言語バーの入力モード切り替え：問題なし
+        「半角/全角」キーでIME言語バーの入力モードを切り替えられます。
+        「英数」キーも機能します。
+        画面キャプチャ：問題なし
+        PrintScreenキーやAlt+PrintScreenキーで画面キャプチャできます。
+        テンキー：問題なし
+        テンキーをもつPCキーボードではNumLockキーを押すことでテンキーによる数字入力ができるようになります。
+        Windowsキー：問題なし
+        Windowsキーでスタートメニューを表示できます。
+
+
+
+
+８．Windows VistaへのMac Windows Driversの導入(目的：サウンド再生他)
+
+事前に作成しておいたMac Windows Driversディスク(CD-R)をセットし、setup.exeを起動してMacマシンに対応したドライバをインストールします(ドライバ選択はできません)。
+このMac Windows Driversの導入結果は以下のようになります。
+(1)内蔵Ethernet(有線)でのネットワークは利用可能のままです。
+(2)AirMacでのネットワークも利用可能のままです。
+(3)サウンド再生ができるようになります(SigmaTel High Definition Audio CODECがインストールされるため)。
+※SigmaTel Audioサービスが自動起動されるようになります。
+(4)ディスプレイアダプタは「Mobile Intel 945 Express Chipset Family」対応ドライバが自動インストールされ1600x1200の解像度ではAero対応でなくなります。
+尚、解像度を1280x1024等にすればAero対応となります。
+(5)コントロールパネルに「Boot Camp」が追加され起動ディスクの変更ができるようになります。
+※タスクバーのシステムトレイの「Boot Camp」アイコンの右クリックメニューに＜Mac OS Xで再起動＞もあります。
+(6)上記のようにBoot Camp経由でないWindows Vistaのインストール後のデフォルト起動OSはMac OS Xのままです。
+※単に電源ボタンを押すとMac OS Xが起動します。
+(7)Boot Campヘルプ(C:\Program Files\Boot Camp\Boot Camp.Resources\ja.lproj\Boot Camp Help.chm)がインストールされます。
+※そのヘルプにはPCキーボードとAppleキーボードの対応表(Alt+PrintScreen = Option + F14, Windows = コマンドキー等)も記載されています。
+(8)キーボードでの( ) \ | _ 等の記号入力は問題なく行えます。
+もしそれらの記号入力ができなくなった場合はキーボードのドライバの更新をオンラインでのソフトウェア検索モードで実施します。
+(9)Macキーボードの場合、「カナかな」キーでIME言語バーに「あ」が表示されます(Shift+「英数」キーで「A」表示)。
+(10)PCキーボードの利用について
+外部PCキーボードの場合は、Alt+「半角/全角」キーで「あ」と「A」が切り替わります。
+(「カタカナひらがな」キーで「あ」が表示され、「英数」キーだけで「A」表示ともなります)
+VMware Fusion上のBoot Camp partition(Windows)では「半角/全角」キーだけで切り替えできます。
+※LinuxのAnthy+uim利用時はデフォルトで「半角/全角」キーだけで切り替えできます。
+Intel MacでWindowsを実行させる場合、Macキーボードを使用するかPCキーボードを使用するかは単に慣れの問題かと思われます。
+(11)Bluetooth対応マウスがWindows Vistaでも利用できるようになります。
+具体的にはコントロールパネルに追加されたBluetoothデバイスを開き＜追加＞ボタンで「Bluetoothデバイスの追加ウィザード」を開始します。
+AppleのMighty Mouseが認識されるとドライバが自動インストールされてMighty Mouseも使用可能となります。
+
+
+
+
+
+
+９．Windows VistaへのMacディスク読み書きツールの導入(任意)
+
+Windows VistaにMac Windows DriversをインストールしてもWindows VistaからMacディスクのアクセスはできません。
+そこで必要に応じてWindows VistaにMacディスクの読み書きツールを導入すると便利です。
+
+    MacDrive 7 日本語版について
+    Intel MacのGPT(新しいパーティションテーブル)とWindows Vistaにも対応したものとしてはMacDrive 7 日本語版があります。
+    そのMacDrive 7をWindows VistaにインストールしてWindows Vistaを再起動するとMac OS X本体のMacディスクがE:ドライブとして自動マウントされます。
+
+    Windows VistaからMacディスクへのファイル書き込み
+    MacDrive 7の導入によってWindows VistaからMacディスクファイルの読み書きが可能となります。
+    (1)Windows VistaからMacディスクにファイルのドラッグ＆ドロップが行えます。
+    (2)Windows VistaからMacディスクの既存ファイルの更新が行えます。
+
+
+
+
+１０．Fedora 7のインストール
+
+Fedora 7のインストールDVDをドライブにセットし、Cキーを押しながら電源投入します(Macboot USBはこの時点ではセット不要です)。
+これによってFedora 7のインストーラが起動されます。
+
+Fedora 7のインストール方法はネーティブ環境の場合と同じですが、今回のトリプルブート環境構築では/dev/sda3をインストール先として指定します(swapパーティションは無しです)。
+またGRUBブートローダはデフォルトの/dev/sda3にインストールします(MBRへのインストールオプションは表示されません)。
+Xen(仮想化)をインストールして利用することもできます。
+
+Fedora 7のインストールで注意が必要なのはFedora 7のインストール中の再起動の対処方法です。
+Fedora 7のインストール中に再起動する場合はMacboot USBをセットし、Macマシンの起動音が鳴った時にOptionキーを押します。
+その場合、画面左からMacintosh HD, Windows, rEFItの順にディスクアイコンが表示されます。
+まず、rEFItのディスクアイコンを選択してEnterキーを押し、次のブートメニューでペンギンアイコンを選択してEnterキーで起動します。
+※rEFItのブートメニューは利用者が設定するのではなくrEFItが起動時に自動作成します。
+
+Fedora 7をインストールした環境では以下のようになります。
+(1)内蔵Ethernet(有線)でのネットワーク利用は可能です。
+※内蔵Ethernet(有線)のドライバはMarvell Yukon 88E8053対応sky2ドライバが使用されます。
+(2)サウンド再生はできません(Fedora 7には対応するサウンドドライバが無いようです)。
+(4)ビデオカードは「Intel Corporation Mobile 945GM/GMS, 943/940GML Express integrated Graphics Controller」として認識されます。
+Xウィンドウ用のドライバは「intel」が使用されます。
+※この標準のディスプレイドライバでCompizを使用したデスクトップ効果を適用することが可能です。
+
+Fedora 7のGRUBメニューにWindows Vista起動用の項目を追加すればGRUBメニューからVistaを選択して起動できるようになります。
+具体的にはFedora 7のGRUB設定ファイル(/boot/grub/grub.conf)に以下の記述を追加します。
+
+title Vista
+	rootnoverify (hd0,3)
+	chainloader +1
+
+
+最後にGPTとMBRの両方に対応したGParted(GUIベースのパーティション管理ツール)をインストールします。
+※GPartedはトリプルブート環境構築/維持での必需品的存在です。
+# yum install gparted
+
+
+
+１１．Windows Vistaの修復
+
+Fedora 7をインストールするとWindows Vistaの起動ができなくなります。
+
+[Windows Vistaの起動エラー画面]
+
+
+
+これはWindows Vistaのブートローダが\Windows\system32\winload.exeを見つけられなくなるためです。
+rEFItのブートメニューで[Start Partioning Tool](実体はgptsync.efiユーティリティ)を選択してMBRをGPTに同期させてもWindows Vistaの起動はできません。
+※[Start Partioning Tool]を実行するとWindows Vistaをインストールした/dev/sda4のタイプも「Linux」と表示されますがそれを「NTFS/HPFS」となるように同期させてもNGです。
+(rEFIt Shellを起動してgptsyncを実行しても同様)
+
+以下の手順でWindows Vistaの修復を行います。
+
+    Windows VistaのインストールDVDからのブート
+    Windows VistaのインストールDVDをセットしてCキーを押しながらブートします。
+    この時、Windows Boot Manager(英語表記)が起動されます。
+
+    オプション選択
+    Windows Boot Managerのオプション選択ではデフォルトの「Windows Setup [EMS Enable]」を選択します。
+    それによって「Windows is loading files」メッセージが表示された後にGUIインストーラが表示されます。
+
+    コンピュータの修復選択
+    インストーラでの言語設定の次の画面([今すぐインストール]表示のある画面)では左下にある「コンピュータを修復する」をクリックします。
+
+    修復実行
+    修復対象OS名が表示され、「システム回復オプション」ダイアログで＜修復して起動する＞ボタンをクリックすると修復されます。
+    これでWindows Vistaも起動できるようになります。
+
+
+
+
+
+
+１２．トリプルブート確認
+
+Macboot USBをセットして以下の手順でトリプルブートができることを確認します。
+尚、CD/DVDは何もセットしません。
+
+    Optionキーを押しながら電源投入
+    実際には電源投入直後のMacの起動音が鳴った直後にOptionキーを押せばディスク選択画面が表示されます。
+
+
+
+    各ディスク選択での確認内容は以下の通りです。
+
+    Macintosh HDのディスクアイコン
+    Macintosh HDのディスクアイコンを選択してEnterキーを押してMac OS Xが起動することを確認します。
+
+    Windowsのディスクアイコン
+    アイコンにはWindowsという名前が表示されていますが、これは必ずしもWindowsだけを指す訳ではありません。
+    このWindowsのディスクアイコンは「アクティブ属性(bootフラグが設定されている)パーティション」を表しています。
+    今回はWindows Vista, Fedora 7の順でインストールしたためFedora 7のパーティション(正確には/bootのパーティション)を指しています。
+    したがってここでWindowsのディスクアイコンを選択してEnterキーを押すとFedora 7のGRUBメニューが表示されます。
+
+    このWindowsのディスクアイコンがWindows Vistaを指すように設定することもできます。
+    それにはいくつかの方法がありますが以下に例を紹介します。
+    (1)GPartedでWindows Vistaのパーティションにbootフラグを設定。
+    (2)grub.confのVistaエントリに次の2行を追加。
+    savedefault
+    makeactive
+
+    rEFItのディスクアイコン
+    rEFItのディスクアイコンを選択してEnterキーを押して表示されるrEFItブートメニュー項目について以下の確認をします。
+
+        rEFItブートメニュー
+        rEFItブートメニューは以下のような表示となります。
+
+
+
+        アップルアイコン
+        アップルアイコンを選択してEnterキーを押してMac OS Xが起動することを確認します。
+
+        ペンギンアイコン
+        ペンギンアイコンを選択してEnterキーを押してFedora 7が起動することを確認します(GRUBメニューの一時的変更も可能)。
+
+        Windowsアイコン
+        Windowsアイコンを選択してEnterキーを押してWindows Vistaが起動することを確認します。
+
+        尚、Windowsのインストールされていないデータ領域専用のNTFSパーティションもWindowsアイコンで表示されます。
+
+        レガシーOSアイコン
+        一番右側の菱形4個から構成されるアイコンはレガシーOSアイコンです。
+        ここではUSBのマークが入っておりrEFItをインストールしたUSBメモリのパーティションを指しています。
+
+
+
+
+
+１３．トリプルブート環境での各OSの利用
+
+    Mac OS X
+    (1)Mac OS XからWindows Vistaのボリュームを読み取ることができます。
+    (2)Mac OS XのVMware FusionからWindows Vista(Boot Camp partition)を起動して利用できます。
+    ※Boot CampパーティションのWindowsをインストールし直した場合は、
+    「/Users/ユーザ名/Library/Application Support/VMware Fusion/Virtual Machines/Boot Camp/%2Fdev%2Fdisk0」フォルダの
+    古い「Boot Camp partition.vmwarevm」は手動削除しておきます。
+    これによってVMware FusionでBoot Camp partitionを最初に起動すると「VMware Fusion is preparing ...」が表示されるようになります。
+
+
+
+    ※VMware Toolsのインストールでキーマップが英語モードになるため日本語キーボード化への設定変更が必要です。
+
+    VMware Fusionの中のWindows Vistaからも実パーティション構成を確認できます。
+
+
+
+    Windows Vista
+    (1)ディスプレイドライバが標準VGAグラフィック用になった場合はドライバの更新でMobile Intel 945 Express Chipset Familyをオンラインインストールします。
+    (2)MacDrive 7があればMacintosh HDのファイル読み書きも簡単にできます。
+
+
+
+    Fedora 7
+    (1)パーティション構成はGPartedで確認できます。
+
+
+
+    (2)Fedora 7からMac OS Xのボリュームをマウントして読み取ることができます。
+    # mkdir /mnt/macosx
+    # mount /dev/sda2 /mnt/macosx
+
+
+
+    (3)Fedora 7からWindows Vistaのボリュームをマウントして読み書きすることができます。
+    # mkdir /mnt/vista
+    # mount /dev/sda4 /mnt/vista
+
+
+
+    (4)Fedora 7のデスクトップ効果を利用できます(効果等のオプション設定はgconf-editorにて実施)。
+
+
+
+    ※上記のWebブラウザの半透明化はOptionキーとマウスのホィールボタンスクロールで行っています。
+
+    (5)Fedora 7のXenでHVMドメインを実行することができます(例：Windows XPのインストール/実行)
+
+        Windows XPのインストール準備
+        (a)/boot/grub/grub.confの編集
+        Xen用のカーネル行に「dom0_mem=512m」を追加してXenモードでブートします。
+
+        (b)4GBディスクイメージの作成
+        # dd if=/dev/zero of=/root/macwinxp.img bs=1M count=1 seek=4096
+
+        (c)HVMドメイン設定ファイル(/etc/xen/xmmacwinxp.hvm)の作成
+        以下の内容とします。
+
+        name = "MacWinXPHVM"
+        builder = "hvm"
+        memory = 256
+        disk = [ 'file:/root/macwinxp.img,hda,w', 'phy:/dev/cdrom,hdc:cdrom,r' ]
+        vif = [ 'type=ioemu, mac=00:16:3e:4c:99:3d, bridge=xenbr0', ]
+        device_model = "/usr/lib/xen/bin/qemu-dm"
+        kernel = "/usr/lib/xen/boot/hvmloader"
+        sdl=1
+        vnc=0
+        apic=1
+        pae=1
+        vcpus=1
+        serial = "pty"
+        on_reboot   = 'restart'
+        on_crash    = 'restart'
+
+
+        Windows XPのインストール
+        Windows XPのインストールCDをセットして以下のコマンドでHVMドメインを起動してインストールを開始します。
+
+        # xm create xmmacwinxp.hvm boot=d
+
+
+
+        Windows XPの実行
+        以下のコマンドでHVMドメインを起動してWindows XPを開始します(ネットワークも利用できます)。
+
+        # xm create xmmacwinxp.hvm
+
+
+
+        ※Fedora 7側ではMacintosh HDボリュームをマウントして内容表示しています。
+
+
+    (5)Fedora 7のXenでのHVMドメインとしてBoot CampパーティションにあるWindows Vistaを実行することもできると思います(未検証)。
+    [補足]
+    Windows VistaをHVMで実行可能なら同じWindows Vistaをネーティブ実行、VMware Fusionでの実行、HVMドメインでの実行という多様な実行形態を持てることになります。
+    しかし実行環境別に認識されるハードウェアに大きな差があり実行環境切り替えの都度OSアクティベーションを毎回要求される可能性があります。
+
+
+
+
+１４．トリプルブート環境への4番目OS, 5番目OSの追加利用
+
+トリプルブート環境には4番目のOS, 5番目のOS等も追加インストールして利用することもできます。
+※4番目のOS, 5番目のOSをインストールしてブートする環境はもはやトリプル(3多重)ではなく普通の「マルチブート環境」です。
+このマルチブート環境を実現する方法はいくつかありますがここではLinuxを介在させる方法を紹介します。
+具体的にはその4番目のOS, 5番目のOSをブートするブートローダとして、上述したFedora 7のGRUBブートローダを使用します。
+
+    手順の概略
+    (1)内蔵HDDとは別に外付けHDD(USBディスク)を用意します。
+
+    (2)外付けHDDに4番目OS, 5番目OSをインストールできるようにパーティション分けします。
+    [パーティション分けの例]
+    第1パーティション：Mac OS 拡張(ジャーナリング)
+    第2パーティション：NTFS
+    第3パーティション：ext3
+    第4パーティション：ext3
+
+    (3)追加OSのインストールではその/boot用パーティションを最初のFedora 7の/パーティションと共用させる指定をします。
+    これはUSBディスクにインストールした追加OSのカーネルをUSBディスクに置いたまま起動できないというファームウェア特性があるためです。
+
+    (4)Fedora 7の/パーティションに4番目OS用ブートファイルと5番目OS用ブートファイルを並存させる設定を行います。
+    ※追加OSのブートファイルをディレクトリ分けして格納して最初のFedora 7用grub.confを変更します。
+
+    4番目のOS(64ビット版Fedora 7)の追加導入
+    Macboot USB, 外付けHDDを接続して4番目のOS(64ビット版Fedora 7)を以下の手順で追加します。
+
+        64ビット版Fedora 7のインストールDVDをセットしてDVDからブート
+
+        パーティション設定
+        (1)/bootパーティション
+        /bootパーティションは最初のFedora 7のパーティションにある/パーティション(/dev/sda3)をフォーマットなしで共用します。
+        (2)/パーティション
+        /boot以外の/パーティションは外付けHDDの第3パーティション(/dev/sdc3)を指定します(フォーマットします)。
+
+        ブートローダの設定
+        GRUBブートローダはデフォルトの/dev/sda3にインストールします(MBRにはインストールしません)。
+
+        上記以外の設定
+        上記以外の設定(ネットワーク等)は通常のインストールの場合と同じです。
+
+        インストール完了後の再起動
+        インストール完了後にインストーラの＜再起動＞ボタンを押します。
+        Macの起動音が鳴ってからOptionキーを押してrEFItディスクを選択起動します。
+        rEFItメニューに4番目のOSを指すペンギンアイコンが追加表示されますがそのペンギンアイコンではブートできません。
+
+        まず、rEFItメニューでStart Partitioning Toolを起動し、GPTとMBRの同期を取ります。
+        次に最初のFedora 7をブートして以下の操作を行います。
+
+            4番目のOSブートファイル群のディレクトリ集約化
+            /boot-Fedora7x64ディレクトリを作成し、4番目のOSブートファイル群をそこに移動させます(このディレクトリ名は任意です)。
+            # mkdir /boot-Fedora7x64
+            # mv /System.map-2.6.21-1.3194.fc7 /boot-Fedora7x64
+            # mv /config-2.6.21-1.3194.fc7 /boot-Fedora7x64
+            # mv /grub /boot-Fedora7x64
+            # mv /initrd-2.6.21-1.3194.fc7.img /boot-Fedora7x64
+            # mv /vmlinuz-2.6.21-1.3194.fc7 /boot-Fedora7x64
+
+            /boot/grub/grub.confの変更
+            4番目のOS用エントリを追加します。
+
+            title Fedora7 x64 (2.6.21-1.3194.fc7)
+                    root (hd0,2)
+                    kernel /boot-Fedora7x64/vmlinuz-2.6.21-1.3194.fc7 ro root=/dev/sda3 rhgb quiet
+                    initrd /boot-Fedora7x64/initrd-2.6.21-1.3194.fc7.img
+
+            ※kernel行のroot=/dev/sda3のsdx3部分は環境(USBディスク数等)によって変わり得ます。
+              本来なら外付けHDDの第3パーティションを指すsdc3とすべきですが今回の環境ではsda3を指定します。
+
+
+            4番目のOS用/etc/fstabの変更
+            GParted等で4番目のOSの/パーティションのデバイス名を調べて/mntにマウントします。
+            /mnt/etc/fstabを以下の内容にします。
+
+            /dev/sda3               /                       ext3    defaults        1 1
+            /dev/sdc3               /boot                   ext3    defaults        1 2
+            devpts                  /dev/pts                devpts  gid=5,mode=620  0 0
+            tmpfs                   /dev/shm                tmpfs   defaults        0 0
+            proc                    /proc                   proc    defaults        0 0
+            sysfs                   /sys                    sysfs   defaults        0 0
+
+            ※本来なら/bootは内蔵HDDの第3パーティションを指すsda3とすべきですが今回の環境ではsdc3を指定します。
+
+
+
+        4番目のOS利用
+        最初のFedora 7のGRUBメニューから「Fedora7 x64 (2.6.21-1.3194.fc7)」をブートします。
+        インストール後の最初の起動となるため「ようこそ」画面が表示されますので必要な指定を行います。
+        その後再起動し、Fedora7 x64を再度ブートします。
+        rootでグラフィカルログインしてGUI操作できます。
+        Compizやネットワークも問題なく利用できます。
+
+
+
+        Windows Vistaの修復
+        トリプルブート環境でLinuxをインストールするとWindows Vistaの起動ができなくなる場合があります。
+        この4番目のOSインストールでWindows Vistaの起動ができなくなる場合はWindows Vistaの修復を行います。
+
+
+    5番目のOS(32ビット版CentOS 5)の追加導入
+    Macboot USB, 外付けHDDを接続して5番目のOS(32ビット版CentOS 5)を以下の手順で追加します。
+
+        32ビット版CentOS 5のインストールDVDをセットしてDVDからブート
+
+        テキストモードによるインストールの開始
+        このCentOS 5はグラフィックチップを正しく認識しますが、当方の環境(恐らく液晶ディスプレイの接続形態)ではXの起動に失敗します。
+        そこでboot:プロンプトで「linux text」を指定してテキストモードによるインストールを開始しました(インストーラ自体は英文表示)。
+
+        パーティション設定
+        (1)/bootパーティション
+        /bootパーティションは最初のFedora 7のパーティションにある/パーティション(/dev/sda3)をフォーマットなしで共用します。
+        (2)/パーティション
+        /boot以外の/パーティションは外付けHDDの第4パーティション(/dev/sdc4)を指定します(フォーマットします)。
+
+        ブートローダの設定
+        4番目のOSをインストールした際にはそのGRUBブートローダをデフォルトの/dev/sda3にインストールしました。
+        しかし同じところにGRUBブートローダをインストールするのは好ましくないためこの5番目のOSインストールでは「No Boot Loader」を選択しました。
+
+        上記以外の設定
+        上記以外の設定(ネットワーク等)は通常のインストールの場合と同じです。
+        尚、インストールパッケージの選択ではVirtualizationも選択しました。
+
+        インストール完了後の再起動
+        インストール完了後にインストーラの＜Reboot＞ボタンを押します。
+        Macの起動音が鳴ってからOptionキーを押してrEFItディスクを選択起動します。
+        更にrEFItメニューのペンギンアイコンを選択起動しGRUBメニューから最初のFedora 7をブートして以下の操作を行います。
+
+            5番目のOSブートファイル群のディレクトリ集約化
+            /boot-CentOS5ディレクトリを作成し、5番目のOSブートファイル群をそこに移動させます(このディレクトリ名は任意です)。
+            # mkdir /boot-CentOS5
+            # mv /System.map-2.6.18-8.el5 /boot-CentOS5
+            # mv /System.map-2.6.18-8.el5xen /boot-CentOS5
+            # mv /config-2.6.18-8.el5 /boot-CentOS5
+            # mv /config-2.6.18-8.el5xen /boot-CentOS5
+            # mv /grub /boot-CentOS5
+            # mv /initrd-2.6.18-8.el5.img /boot-CentOS5
+            # mv /initrd-2.6.18-8.el5xen.img /boot-CentOS5
+            # mv /message /boot-CentOS5
+            # mv /symvers-2.6.18-8.el5.gz /boot-CentOS5
+            # mv /symvers-2.6.18-8.el5xen.gz /boot-CentOS5
+            # mv /vmlinuz-2.6.18-8.el5 /boot-CentOS5
+            # mv /vmlinuz-2.6.18-8.el5xen /boot-CentOS5
+            # mv /xen.gz-2.6.18-8.el5 /boot-CentOS5
+            # mv /xen-syms-2.6.18-8.el5 /boot-CentOS5
+
+            /boot/grub/grub.confの変更
+            5番目のOS用エントリを追加します(通常カーネルとXenカーネル用の2エントリ)。
+
+            title CentOS5 (2.6.18-8.el5)
+                    root (hd0,2)
+                    kernel /boot-CentOS5/vmlinuz-2.6.18-8.el5 ro root=/dev/sda4 rhgb quiet
+                    initrd /boot-CentOS5/initrd-2.6.18-8.el5.img
+
+            title CentOS5 Xen (2.6.18-8.el5xen)
+            	root (hd0,2)
+            	kernel /boot-CentOS5/xen.gz-2.6.18-8.el5 dom0_mem=512m
+            	module /boot-CentOS5/vmlinuz-2.6.18-8.el5xen ro root=/dev/sda4 rhgb quiet
+            	module /boot-CentOS5/initrd-2.6.18-8.el5xen.img
+
+            ※kernel行のroot=/dev/sda4のsdx4部分は環境(USBディスク数等)によって変わり得ます。
+              本来なら外付けHDDの第4パーティションを指すsdc4とすべきですが今回の環境ではsda4を指定します。
+
+
+            5番目のOS用/etc/fstabの変更
+            GParted等で5番目のOSの/パーティションのデバイス名を調べて/mntにマウントします。
+            /mnt/etc/fstabを以下の内容にします。
+
+            /dev/sda4               /                       ext3    defaults        1 1
+            /dev/sdc3               /boot                   ext3    defaults        1 2
+            devpts                  /dev/pts                devpts  gid=5,mode=620  0 0
+            tmpfs                   /dev/shm                tmpfs   defaults        0 0
+            proc                    /proc                   proc    defaults        0 0
+            sysfs                   /sys                    sysfs   defaults        0 0
+
+            ※本来なら/bootは内蔵HDDの第3パーティションを指すsda3とすべきですが今回の環境ではsdc3を指定します。
+
+
+
+        5番目のOS利用
+        最初のFedora 7のGRUBメニューから「CentOS5 (2.6.18-8.el5)」をブートします。
+        テキストモードでインストールを行ったためランレベル3でブートされます。
+        インストール後の最初の起動となるため「Setup Agent」画面が表示されますのでFireWall等の指定を行います。
+        「Setup Agent」終了後、テキストログインプロンプトが表示されますのでrootでログインします。
+        viで/etc/inittabを編集しデフォルトのランレベルを3から5に変更します。
+        その後再起動し、CentOS5を再度ブートします。
+
+            グラフィカルログイン対応化
+            今回の環境ではXの起動に失敗してGDM(グラフィカルログイン)画面が表示されません。
+            そこで/etc/X11/xorg.confのDeviceセクションの値を"intel"から"vesa"に暫定変更し、その場でgdm-restartコマンドを実行します。
+            これでGDM画面が出ますのでrootで再ログインします。
+            ログイン後、Xの設定をGUIで変更して再ログインしてXの設定変更が正しいことを確認します。
+
+            VMware Serverの導入と64ビットOS用仮想マシンの実行
+            32ビット版CentOS 5にVMware Server 1.0.3を導入して、Windows XP Professional x64 Editionをインストールして実行してみました。
+
+            [Windows XP x64のインストール]
+
+
+
+            [Windows XP x64のデスクトップ]
+            ネットワークも問題なく利用できます。
+
+
+
+            Xenカーネルのブート
+            最初のFedora 7のGRUBメニューから「CentOS5 Xen (2.6.18-8.el5xen)」をブートします。
+            Xenカーネルが問題なく立ち上がります。
+            Xenデーモンの動作も問題無いようです。
+
+        Windows Vistaの修復
+        環境依存かも知れませんがマルチブート環境でLinuxをインストールするとWindows Vistaの起動ができなくなる場合があります。
+        これはインストーラによるパーティション操作(ブートセクタ/パーティションテーブル変更)が影響していると思われます。
+        そこで今回の5番目のOS(CentOS 5)のインストールではブートローダのインストールをスキップしました。
+        しかし/パーティションについてはext3による再フォーマットを指示しました。
+        結局、インストーラの動きの影響で5番目のOSインストール後もWindows Vistaの起動はできなくなりやはりWindows Vistaの修復を行いました。
+
+
+
+
+
+１５．USBメモリへのDebian GNU/Linux 4.0のインストールと実行
+
+ここでは4GBのUSBメモリに32ビット版Debian GNU/Linux 4.0(Debian 4.0)をインストールし、
+Fedora 7のGRUBメニューからそのDebian 4.0を起動できる設定をする方法を紹介します。
+USBメモリを使用するという点以外は4番目OS, 5番目OSの追加の場合と基本的に同様ですが、
+デバイス名の変更やWindows Vistaの修復作業等は不要となります。
+
+    USBメモリへのDebian 4.0のインストール
+    Macboot USB, USBメモリを接続してDebian 4.0を以下の手順でインストールします。
+
+        Debian 4.0のインストールCD(netinst版)をセットしてCDからブート
+        インストールはグラフィカルインストール(boot:でのguiinstall指定)ではなくテキストモードを使用します。
+        ※これはグラフィカルインストール用のXが起動しなかったためです。
+
+        パーティション設定
+        今回のDebian 4.0のインストールでは/bootパーティションと/パーティションを分けずにUSBメモリ全体を/dev/sdc1として使用します。
+        尚、パーティションのラベルは後でMac OS Xからマウントして利用することも考慮して「MacDebian40」を指定しました。
+
+        ブートローダの設定
+        GRUBブートローダのインストール先はMBR(1番目のHDD=内蔵HDDのMBR)ではなく/dev/sdc1とします。
+
+        上記以外の設定
+        上記以外の設定(ネットワーク等)は通常のインストールの場合と同じです。
+
+        インストール完了後の再起動とブート環境の整備
+        インストール完了後の再起動ではMacの起動音が鳴ってからOptionキーを押してrEFItディスクを選択起動します。
+        rEFItメニューの最後にDebian 4.0用のペンギンアイコンが追加表示されますがそのペンギンアイコンではブートできません。
+
+        まず、rEFItメニューの最初のペンギンアイコンでFedora 7のGRUBメニューを表示させます。
+        次にFedora 7をブートして以下の操作(ブート環境の整備)を行います。
+
+            USBメモリの抜き差し
+            rEFItのインストールされたMacboot USBと4GBのUSBメモリをセットしたままFedora 7をブートしてもそれらのUSBメモリは認識されません。
+            Fedora 7のデスクトップが表示されてから一旦それらのUSBメモリを抜きます。
+            次にMacboot USB, 4GBのUSBメモリの順に接続します。
+            これによってMacboot USBは/dev/sdb, 4GBのUSBメモリは/dev/sdcとして利用できます。
+
+            Debian 4.0用/bootの切り替え(内蔵HDDへのコピー)
+            USBメモリにあるカーネルファイルをGRUBの中で直接指定してもUSBからブートさせることはできません。
+            (Selected disk does not existエラーとなります)
+            そこでDebian 4.0の/boot全体をFedora 7の/boot-Debian40にコピーします。
+
+            # mount /dev/sdc1 /mnt
+            # cp -Ra /mnt/boot /boot-Debian40
+            # umount /mnt
+
+            /boot/grub/grub.confの変更
+            Debian 4.0用エントリを追加します。
+            内容的にはDebian 4.0をインストールしたファイルシステムの/boot/grub/menu.lstの内容の一部をコピーして
+            kernelとinitrdの格納場所指定を変更するだけです。
+
+            title		Debian GNU/Linux, kernel 2.6.18-4-686
+            root		(hd0,2)
+            kernel		/boot-Debian40/vmlinuz-2.6.18-4-686 root=/dev/sdc1 ro 
+            initrd		/boot-Debian40/initrd.img-2.6.18-4-686
+
+            ※root行の値(カーネルの格納パーティション)をFedora 7の場所[(hd0,2)]に変更します。
+              またディレクトリ名も変更します(kernel行のroot=/dev/sdc1の部分は変更なし)。
+
+
+            Debian 4.0用/etc/fstabの変更
+            Debian 4.0の/bootの切り替えに伴いDebian 4.0用/etc/fstabを編集します。
+
+            # mount /dev/sdc1 /mnt
+            # vi /mnt/etc/fstab
+            /mnt/etc/fstabを以下の内容にします。
+
+            proc            /proc           proc    defaults        0       0
+            /dev/sdc1       /               ext3    defaults,errors=remount-ro 0       1
+            /dev/sda3       /boot           ext3    defaults,errors=remount-ro 0       1
+            /dev/hda        /media/cdrom0   udf,iso9660 user,noauto     0       0
+            # /dev/sdb1       /media/usb0     auto    rw,user,noauto  0       0
+            # /dev/sdc1       /media/usb1     auto    rw,user,noauto  0       0
+
+            ※/boot用の/dev/sda3の行を追加し、/media/usb0と/media/usb1の行をコメント化します。
+
+
+            # umount /mnt
+
+
+
+    Debian 4.0の利用
+    最初のFedora 7のGRUBメニューから「Debian GNU/Linux, kernel 2.6.18-4-686」をブートします。
+    インストール時に作成した一般ユーザでグラフィカルログインしてGUI操作します。
+
+    Debian 4.0をインストールした環境では以下のようになります。
+    (1)内蔵Ethernet(有線)でのネットワーク利用は可能です。
+    ※内蔵Ethernet(有線)のドライバはMarvell Yukon 88E8053対応sky2ドライバがeth1用ドライバとして使用されます。
+    (2)サウンド再生はできません(Debian 4.0には対応するサウンドドライバが無いようです)。
+    (4)ビデオカードは「Intel Corporation Mobile 945GM/GMS/940GML Express Integrated Graphics Controller」として認識されます。
+    Xウィンドウ用のドライバは「i810」が使用されます。
+    (5)Mac OS XやWindows Vistaのパーティションデータもアクセスできます。
+    (6)Intel Mac上のDebian 4.0のデスクトップ外観；
+
+
+
+    Mac OS XからのDebian 4.0 USBメモリアクセス
+    Debian 4.0をインストールしたUSBメモリにはLinuxパーティションしかなくMac OS Xが自動マウントできるファイルシステムがありません。
+    このためDebian 4.0をインストールしたUSBメモリを接続したままMac OS Xを起動すると、以下のメッセージが出ます。
+    メッセージ：「セットしたディスクは、このコンピュータで読み取れないディスクでした。」
+    ※応答は＜初期化＞ではなく＜無視＞または＜取り出し＞を選択します。
+
+    しかし予めMac OS Xに「EXT2 Filesystem for Mac OS X」を導入しておくとMac OS Xを起動した時にDebian 4.0のUSBメモリが自動マウントされて表示されます。
+    ※当然ながら、内蔵HDDにインストールしたFedora 7のパーティション(ボリューム)も自動マウントされます。
+    しかしext2ファイルシステムアクセスについてカスタマイズしていない状態ではMac OS Xからはext2ファイルシステムの一部しか読み取れません。
+    尚、一般ユーザのホームディレクトリはアクセスできるので幾分重宝します。
+
+        ext3ファイルシステムが自動マウントされた状態のデスクトップアイコン
+        「/」はFedora 7のパーティション(/dev/sda3)を示し、「MacDebian40」はDebian 4.0のパーティション(/dev/sdc1)を示します。
+
+
+
+        ディスクユーティリティでのDebian 4.0パーティションのサマリ情報確認
+
+
+
+        Mac OS XからのDebian 4.0パーティションのファイルアクセス
+        Debian 4.0の/usr/share/apps/kdm/theme/debian-moveble.pngをプレビュー表示してみました。
+
+
+
+
+    USBメモリ使用時の留意点
+    USBメモリを使用する場合、Intel MacがUSBメモリを認識する順序は常に同じとは限りません。
+    今回の場合、毎回同じUSBスロット位置にMacboot USBとDebian 4.0をインストールしたUSBメモリを接続したとします。
+    しかしある契機によって突然Debian 4.0をブートできなくなる場合があります。
+    ※「Mounting /dev/sdc1 on /root failed: No such device」エラーとなります。
+    これはDebian 4.0をインストールしたUSBメモリが/dev/sdcではなく/dev/sdbとして認識されるためです。
+    このような現象発生時はUSBメモリの接続スロット位置を変更します。
+
+
+
+
+１６．USBメモリへのFedora 8 Test 2のインストールと実行
+
+GPTを導入したUSBメモリへのFedora 8 Test 2のインストールと実行手順は「Intel MacでのFedora 8 Test 2環境」で紹介しています。
+
+
+
+１７．Windows Vistaの安全な再インストール
+
+Windows Vistaインストール後のFedora 7のGRUBブートローダは/dev/sda3(disk0s3)にインストールしています。
+このためWindows Vistaを「ディスク0 パーティション 4」に再インストールしてもFedora 7のGRUBブートローダには影響がありません。
+即ち、Windows Vistaの「ディスク0 パーティション 4」への再インストールは何回でも安全に行うことができるということになります。
+※Windows Vistaの「ディスク0 パーティション 4」への再インストールによるGPT/MBRの実質的変化はありません。
+
+
+
+１８．Mac OS XからのBoot Camp Vistaへのファイル書き込み
+
+Mac OS XからBoot Camp Vista(Windows VistaをインストールしたNTFS形式のBoot Campパーティション)をマウントしてファイルアクセスできます。
+しかしデフォルトでは読み込み専用モードとなります。
+Mac OS XからBoot Camp Vistaにファイル書き込みをするには最低限MacFUSEとNTFS-3Gのインストールが必要です。
+今回はMacFUSE-Core-0.4.0.dmgとNTFS-3G_1.1004-u2-catacombae.dmgをダウンロードしてインストールしました。
+
+Mac OS XからBoot Camp Vistaを次のようにマウントします。
+$ pwd
+$ mkdir bcvista
+$ sudo /usr/local/bin/ntfs-3g /dev/disk0s4 /Users/ユーザ名/bcvista/ -o force
+この操作によってデスクトップに「MacFUSE Volume 1」というボリュームが表示されます。
+あとはそのボリュームにフォルダ作成やファイル書き込みが可能となります。
+
+    Boot Camp Vistaへの新規フォルダ作成の様子
+    「FromMac」という新規フォルダを作成してみました。
+
+
+
+    作成したフォルダに保存したファイルのプレビュー
+
+
+
+
+
+
+１９．Mac OS X v10.3(Panther)の同時使用
+
+Mac OS X v10.4(Tiger)ではいろいろな仮想マシンを操作できますが今のところMac OS Xを仮想化することはできません。
+しかし単にInetl MacからPowerPCのMac OS X(例：Panther)を操作したいという場合もあるかも知れません。
+そのような場合はVNCを利用します。
+PowerPCのMac OS X(Panther)側にフリーのVNCサーバ(Vine Server for OS X[旧OSXvnc])を導入し、Intel Mac側のVNCクライアントから接続します。
+※Windows等のVNCクライアントからも接続できます。
+
+
+
+
+
+
+

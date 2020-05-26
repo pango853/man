@@ -668,12 +668,119 @@ Overview of the basic concepts of APIs.
 2.1.1. Module Overview
 	wide variety of options for OAuth, like various grant types for API proxy
 2.1.2. OAuth Introduction
+	OAuth Roles
+		Resource Owner		Owns access to protected resources
+		Resource Server		Protected server, accepts access tokens
+		Client				Application making request to protected resources
+		Authorization Server	Issues access tokens to client
+	OAuth Review
+		OAuth v2.0			Clients grant access to server resources without sharing credentials
+		Client IDs and Secrets	used to identify and authenticated applications
+		Tokens				Client IDs and Secrets exchanged for tokens, Grant access to resource, and is Time bound
+		Scopes				limits the tokens access for a resource
+		Grant Types			4 Grant Types: client credentials, password, implicit and authorization code
+		TLS					OAuth 2.0 requires TLS
+	Access Tokens
+		Client ID and Secret - Identification from the requesting application						First application sends to authorization server
+		+ (OPTIONAL) User of the app - Resource owner credentials									
+		+ Scope - Optional information about what the application wants to do with the resource		
+		= Access Token and (optional) refresh token													Returned by authorization server
+	Refresh Tokens
+		Client ID and Secret - Identification from the requesting application
+		+ Refresh token
+		+ Scope - Optional information about what the application wants to do with the resource		
+		= Access Token and (optional) refresh token
+	Scopes
+		Examples
+			- Scope1: "READ"	GET /photos	GET /photos/{id}
+			- Scope2: "UPDATE"	GET /photos	GET /photos/{id} POST /photos	PUT /photos/{id}
+		Scopes are configured at Apigee > `Product Details` > `Allowed OAuth Scopes`
+	OAuth Grant Types	4 OPAuth 2.0 Grant types:
+		<No specific resource owner is involved>
+		- Client Credentials	For business system interactions, where resources being operated on are owned by the partner, not a paticular user.	Not Complex
+		<A specific resource owner is involved>
+		- Client Credentials		For Resources are owned by a particular user and the requesting application is trusted			A bit complex
+		- Authorization Code		For Resources are owned by a particular user and the requesting application is untrusted		Very complex
+		- Implicit					For Resources are owned by a particular user and the requesting application is an untrusted browser-based app written in a scripting language such as JavaScript. Very very Complex!
 2.1.3. Practice Quiz
+	1/1	Which is NOT an OAuth Role?			Client | Backend Server | Resource Server | Authorization Server | Resource Owner => Backend Server
 2.1.4. Client Credentials Grant Type
+	Client app <--> Authorization server,  no end user participated. Client Authentication also used as the autorization Grant => Must only be used with confidential clients
+	Client ID is the only data that is exchanged for an access token
+	Simplest to implement but the least secure
+	Main idea:
+		Client ---> Resource Server
+		no user context (resources do not belong to any user). e.g. /getlocations API call to get the list of stores which are not specific to a certain user
+	Actors:
+		Client App <--> Apigee Edge(Authorization Server) <-->	Resource Server
+	Generate Access Token operation/policy
+		```
+		<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+		<OAuthV2 async="false" continueOnError="false" enabled="true" name="oauth-generate-token">
+			<DisplayName>OAuth Generate Token</DisplayName>
+			<Operation>GenerateAccessToken</Operation>
+			<ExpiresIn>86400000</ExpiresIn>
+			<SupportedGrantType>
+				<GrantType>client_credentials</GrantType>
+			</SupportedGrantType>
+			<GrantType>request.queryparam.grant_type</GrantType>		<!-- ★ -->
+			<GenerateResponse/>
+		</OAuthV2>
+		```
+	Verify OAuth Token Policy
+		```
+		<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+		<OAuthV2 async="false" continueOnError="false" enabled="true" name="VerifyOAuthToken">
+			<DisplayName>OAuth Verify Token</DisplayName>
+			<Operation>VerifyAccessToken</Operation>
+		</OAuthV2>
+		```
+		> curl -H "Authorization: Bearer {access_token}" http://myorg-test.apigee.net/v1/cc/oauth_cc_weather/forecastres?w=12797282
 2.1.5. Password Grant Type
+	Actors:
+		User
+		Client
+		Apigee Edge
+		Authentication Server
+		Resource Server
+	Resource Owner Password Credentials Grant
+		- resource owner is involved and the application is trusted. username and password can be used.
+		- more complex and secure than client credentials grant type
+		- migrate from basic auth to access tokens
+		- refresh token + access token
+	Generate Access Token policy
+		```
+		<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+		<OAuthV2 async="false" continueOnError="false" enabled="true" name="oauth-generate-token">
+			<DisplayName>OAuth Generate Token</DisplayName>
+			<Operation>GenerateAccessToken</Operation>
+			<ExpiresIn>86400000</ExpiresIn>
+			<SupportedGrantType>
+				<GrantType>password</GrantType>							<!-- ★ -->
+			</SupportedGrantType>
+			<GrantType>request.formparam.grant_type</GrantType>		<!-- ★ -->
+			<UserName>request.formparam.username</UserName>
+			<PassWord>request.formparam.password</PassWord>
+			<GenerateResponse/>
+		</OAuthV2>
+		```
+	Client credentials vs. Password grant type
+		Password grant type has additional attributes: refresh_token{,_issued_at,_status}
+	Verify OAuth token policy
+		> curl -H "Authorization: Bearer {access_token}" http://myorg.test.apigee.net/v1/customers/1234
+		```
+		<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+		<OAuthV2 async="false" continueOnError="false" enabled="true" name="VerifyOAuthToken">
+			<DisplayName>OAuth Verify Token</DisplayName>
+			<Operation>VerifyAccessToken</Operation>		<!-- ★ Same as client credentions grant type -->
+		</OAuthV2>
+		```
 2.1.6. AuthorizationCode Grant Type
+	
 2.1.7. Implicit Grant Type
+	
 2.1.8. Miscellaneous
+	
 2.2. Lab: OAuth
 2.2.1. Client Credentials Grant Type
 2.2.2. Password Grant Type

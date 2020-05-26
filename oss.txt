@@ -1,0 +1,39 @@
+
+
+
+###. Web
+
+#. Mail
+	DavMail	provides a solution, translating Microsoft Exchange to open protocols like POP, IMAP, SMTP, Caldav, Carddav, and LDAP.
+
+#. Forum
+	Simple Machines Forum (SMF)
+	Discuz!
+	ModernBB
+	bbPress
+	MyBB
+	phpwind
+	xenForo
+	Webcrossing
+	vBulletin
+	Vanilla
+	phpBB
+
+#. Monitoring
+	Linux Socket Monitor (LSM)
+
+#. Dev
+	Apache Qpid	a messaging systems that implements the Advanced Message Queuing Protocol (AMQP) to help you solve your needs of advanced messaging between different elements of your deployment stack.
+
+
+
+
+Cloud Server
+Slim Framework
+
+
+
+REF:
+https://www.digitalocean.com/community/articles/
+
+

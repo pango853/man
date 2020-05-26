@@ -1,0 +1,32 @@
+
+
+
+###. Composer
+
+$ curl -sS https://getcomposer.org/installer | php
+OR
+$ curl -sS https://getcomposer.org/installer | php -- --install-dir=bin
+OR
+$ curl -sS https://getcomposer.org/installer | php
+# mv composer.phar /usr/local/bin/composer
+
+
+$ composer self-update
+
+###. Framework
+
+	Phalcon
+	Slim
+	Kohana
+	Code Igniter
+	Silex
+	Laravel
+	Yil
+	Fuel PHP
+	Hazaar MVC
+	Zend 1
+	Cake PHP
+	Nette
+	Symfony2
+	Zend 2
+
