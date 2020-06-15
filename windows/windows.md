@@ -225,3 +225,24 @@ If you decide to create a .REG file to add or edit Dos devices, add a second bac
 
 ## コントロールパネル￥ネットワークとインターネット￥ネットワーク接続
 > ncpa.cpl
+
+## Users and Groups, Group Policy & Security Policy
+> lusrmgr.msc 
+> gpedit.msc
+> secpol.msc
+
+## Open browser
+> start /min iexplore http://www.bing.com
+> start /min microsoft-edge:http://www.bing.com
+
+From Run...
+> cmd /c start /min microsoft-edge:http://www.bing.com
+
+## Create Shortcut for Store app in Windows 10
+> explorer shell:AppsFolder
+> shell:AppsFolder
+
+## icons
+ms-appdata:///roaming/git-bash_32px.ico	From %LOCALAPPDATA%\packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\RoamingState
+
+"icon" : "ms-appx:///ProfileIcons/{0caa0dad-35be-5f56-a8ff-afceeeaa6101}.png",

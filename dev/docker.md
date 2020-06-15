@@ -89,6 +89,33 @@ $ iptables -I DOCKER -i ext_if ! -s 8.8.8.8 -j DROP
 	------------------------------
 	# systemctl restart docker
 
+
+OR
+- environment variables
+	- HTTP_PROXY "http://127.0.0.1:3001"
+	- HTTPS_PROXY "https://127.0.0.1:3001"
+	- FTP_PROXY "ftp://127.0.0.1:3001"
+	- NO_PROXY "*.test.example.com,.example2.com"
+- docker run with options:
+	- --env HTTP_PROXY="http://127.0.0.1:3001"
+	- --env HTTPS_PROXY="https://127.0.0.1:3001"
+	- --env FTP_PROXY="ftp://127.0.0.1:3001"
+	- --env NO_PROXY="*.test.example.com,.example2.com
+- ```~/.docker/config.json
+{
+ "proxies":
+ {
+   "default":
+   {
+     "httpProxy": "http://127.0.0.1:3001",
+     "httpsProxy": "http://127.0.0.1:3001",
+     "noProxy": "*.test.example.com,.example2.com"
+   }
+ }
+}
+```
+
+
 ## コンテナエンジンをLXC、追加でブリッジを作成しないようにする
 /etc/sysconfig/docker の other_args指定に “-e lxc -b none” を追加
 	other_args="-H tcp://0.0.0.0:4243 -H unix:///var/run/docker.sock -e lxc -b none"

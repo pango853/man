@@ -9,6 +9,8 @@ Before installing any Linux distros for WSL, you must ensure that the "Windows S
 
 Restart your computer when prompted.
 
+REF: https://docs.microsoft.com/en-us/windows/wsl/install-win10
+
 ## Windows Server Installation Guide
 
 First make sure WSL is enabled and you're running Windows build 16215 or later.
