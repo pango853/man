@@ -187,17 +187,6 @@ FATAL failed to fetch Terraform Variables:
 					no public Route 53 hosted zones found
 
 
-
-
-
-https://cloud.redhat.com/openshift/install
-
-192.168.87.66
-vpc-0571112b64563388d
-Access key ID:		AKIA46FX5BHBJFZSQUGD
-Secret access key:	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
-ap-northeast-1
-
 2. 
 
 
