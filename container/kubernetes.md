@@ -422,3 +422,12 @@ Access http://NODE-IP:31332/
 - Datastore by sqlite3, etcd
 - CNCFが2月に公開したホワイトペーパー「CNCF Serverless Whitepaper」
   https://github.com/cncf/wg-serverless/tree/master/whitepaper
+
+
+# CKAD
+
+## Commands
+> kubectl run nginx --image=nginx --restart=Never --dry-run -o yaml > mypod.yaml
+> kubectl create secret generic my-secret --from-literal=foo=bar -o yaml --dry-run > my-secret.yaml
+> kubectl edit
+> kubectl explain po.spec --recursive

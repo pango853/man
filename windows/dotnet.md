@@ -58,6 +58,49 @@ notepad Pages/Index.cshtml
   https://github.com/hvanbakel/CsprojToVs2017
 
 
+# Build
+
+```
+dotnet build
+dotnet build --configuration Release
+dotnet build --runtime ubuntu.18.04-x64
+dotnet build --source c:\packages\mypackages
+dotnet build -p:Version=1.2.3.4
+```
+
+```
+dotnet publish -c Release
+```
+
+# OSS
+REF: https://project-awesome.org/thangchung/awesome-dotnet-core
+
+## CMS
+- Blogifier			https://github.com/blogifierdotnet/Blogifier#live-blog
+- Squidex			https://github.com/Squidex/squidex
+- Cofoundry			https://github.com/cofoundry-cms/cofoundry
+- Orchard Core		https://github.com/OrchardCMS/OrchardCore
+
+- Piranha Core		https://github.com/piranhacms/piranha.core
+- GrandNode
+- Lynicon			https://github.com/jamesej/lyniconanc?WT.mc_id=-blog-scottha
+- MixCore			https://mixcore.org/ja/
+- Swastika I/O Core
+- Platformus		https://platformus.net/
+- YetaWF
+- ButterCMS			 https://github.com/ButterCMS/buttercms-csharp
+- Umbraco				https://github.com/umbraco
+
+DotNetNuke (DNN)
+Kentico
+Sitefinity CMS
+N2 CMS
+
+nopCommerce	https://github.com/nopSolutions/nopCommerce
+SimplCommerce	https://github.com/simplcommerce/SimplCommerce
+grandnode	https://github.com/grandnode/grandnode
+
+
 # TODO
 - https://docs.microsoft.com/en-us/previous-versions/msp-n-p/ee817674(v=pandp.10)
 - https://docs.microsoft.com/en-us/dotnet/api/system.windows.application.startup?view=netframework-4.8

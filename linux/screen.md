@@ -40,6 +40,7 @@ $ screen -L -S testscreen
 defencodig utf-8
 
 # Prefix Key
+#escape ^\\ 
 escape ^Tt
 
 # set scrollback

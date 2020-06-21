@@ -75,6 +75,10 @@ git archive --format=zip -o patch.zip a9359f9 $(git diff --name-only a9359f9^..a
 git archive --format=zip HEAD -o patch.zip __PATH__/__FILE__
 ```
 
+## git log
+```
+git log --pretty=format:"%h	%an	%ad	%ar	%cn	%cd	%cr	%s" --since 2019-10-01 origin/japan#rq11         >> test.log;
+```
 
 
 # TODO

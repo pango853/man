@@ -93,3 +93,10 @@ export PATH=$PATH:$HOME/bin
 
 > az vm list-ip-addresses -n myVM --query [0].virtualMachine.network.publicIpAddresses[0].ipAddress -o tsv
 > az network public-ip list
+
+# Usage and Quota/Limit
+https://docs.microsoft.com/en-us/azure/virtual-machines/windows/quotas
+
+> Get-AzVMUsage -Location "East US"
+
+

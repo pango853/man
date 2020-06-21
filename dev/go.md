@@ -1,4 +1,24 @@
 
+Software Development, Design and Coding: With Patterns, Debugging, Unit Testing, and Refactoring
+
+# Mastering Go
+
+Chapter 1. Go and the Operating System
+Chapter 2. Understanding Go Internals
+Chapter 3. Working with Basic Go Data Types
+Chapter 4. The Uses of Composite Types
+Chapter 5. Enhancing Go Code with Data Structures
+Chapter 6. What You Might Not Know About Go Packages
+Chapter 7. Reflection and Interfaces for All Seasons
+Chapter 8. Telling a Unix System What to Do
+Chapter 9. Go Concurrency – Goroutines, Channels, and Pipelines
+Chapter 10. Go Concurrency – Advanced Topics
+Chapter 11. Code Testing, Optimization, and Profiling
+Chapter 12. The Foundations of Network Programming in Go
+Chapter 13. Network Programming – Building Servers and Clients
+Chapter 14. Other Books You May Enjoy
+
+
 # Statement
 
 ## The blank identifier
@@ -258,6 +278,22 @@ $> go install ./*SUBSUB*
 - func init()
 - panic(fmt.Sprintf("Slot %d taken", val))
 - fmt.Errorf("Key not found!")
+- Slice vs. Array
+	```go
+	a := [3]int{1, 2, 3} // Array literal: values
+	b := a               // Copy the contents of a into b
+	a[0] = 0
+	fmt.Println(a)       // Prints "[0 2 3]"
+	fmt.Println(b)       // Prints "[1 2 3]"
+	```
+	vs.
+	```go
+	a := []int{1, 2, 3} // Slice literal: references
+	b := a              // a and b now point to the same memory
+	a[0] = 0
+	fmt.Println(a)      // Prints "[0 2 3]"
+	fmt.Println(b)      // Prints "[0 2 3]"
+	```
 
 # MEMO
 FIXME:
