@@ -705,9 +705,11 @@ Overview of the basic concepts of APIs.
 2.1.3. Practice Quiz
 	1/1	Which is NOT an OAuth Role?			Client | Backend Server | Resource Server | Authorization Server | Resource Owner => Backend Server
 2.1.4. Client Credentials Grant Type
-	Client app <--> Authorization server,  no end user participated. Client Authentication also used as the autorization Grant => Must only be used with confidential clients
-	Client ID is the only data that is exchanged for an access token
-	Simplest to implement but the least secure
+About client credentials
+	Most typically, this grant type is used when the app is also the resource owner. For example, an app may need to access a backend cloud-based storage service to store and retrieve data that it uses to perform its work, rather than data specifically owned by the end user. This grant type flow occurs strictly between a client app and the authorization server. An end user does not participate in this grant type flow.
+		Client app <--> Authorization server,  no end user participated. Client Authentication also used as the autorization Grant => Must only be used with confidential clients
+		- Client ID is the only data that is exchanged for an access token
+		- Simplest to implement but the least secure
 	Main idea:
 		Client ---> Resource Server
 		no user context (resources do not belong to any user). e.g. /getlocations API call to get the list of stores which are not specific to a certain user
@@ -737,6 +739,7 @@ Overview of the basic concepts of APIs.
 		```
 		> curl -H "Authorization: Bearer {access_token}" http://myorg-test.apigee.net/v1/cc/oauth_cc_weather/forecastres?w=12797282
 2.1.5. Password Grant Type
+	Most typically, this grant type is used when the resources are owned by a particular user and the requesting application is trusted. For example, a native app could use this grant type to log in on mobile or desktop apps. It is similar to the client credentials grant type, but with an extra step to validate the user credentials along with the client credentials. However, this grant type is more secure and complex than the client credentials grant type.
 	Actors:
 		User
 		Client
@@ -776,25 +779,752 @@ Overview of the basic concepts of APIs.
 		</OAuthV2>
 		```
 2.1.6. AuthorizationCode Grant Type
-	
+	OAuth Grant Types
+		Authorization Code: Resources are owned by a particular user and the requesting application is untrusted. Very complex.
+		- typically used with confidential clients or clients that can securely store the client ID and secret
+	main idea
+		User --> Client --> Resource Server			You don't want to share your user credentials with the Client
+	Actors
+		User
+		User Agent (e.g. a web browser)
+		Client
+		Apigee (as Authorization Server)
+		Authentication Server (Login App)
+		Resource Server
+	Sequence diagram
+		user_request	User --> Client App
+		/oauth/authorize(redirect_url, client_id, scope, response_type)		Client App --> Edge
+		validate_client_id			Inside Edge
+		http_redirect(login_page)	Edge --> Client App
+		open_login_page				Client App --> User Agent
+		get_login_page				User Agent --> Login App
+		return_login_page			Login App --> User Agent
+		display_login_page			User Agent --> User
+		Then,
+		provide_credentials					User --> User Agent
+		submit_credentials					User Agent --> Login App
+		validate_credentials				in Login App
+		consent_form						Login App --> User Agent
+		display_consent_page				User Agent --> User
+		provide_consent						User --> User Agent
+		submit_consent						User Agent --> Login App
+		POST /oauth/UserAuthorize(client_id, redirect_url, scope)			Login App --> Edge
+		validate_redirect_url												in Edge
+		create_auth_code													in Edge
+		response(redirect_url?code=auth_code)								Edge --> Login App
+		http_redirect(redirect_url?code=auth_code)							Login App --> User Agent
+		redirect_url?code=auth_code											User Agent --> Client App
+		extract_auth_code													in Client App
+		/token(grant_type, client_id, client_secret, auth_code, scope)		Client App --> Edge
+		validate_credentials												in Edge
+		return(access_token, refresh_token, scope, exipry)					Edge --> Client App
+		get_protected_resource(access_token)								Client App --> Edge
+		validate_token					in Edge
+		get_resource					Edge --> Resource Server
+		resource						Resource Server --> Edge
+		resource						Edge --> Client App
+		user_response					Client App --> User
+	Generate Authorization Code
+		```
+		<OAuthV2 async="false" continueOnError="false" enabled="true" name="GetAuthCode">
+			<DisplayName>GetAuthCode</DisplayName>
+			<ExpiresIn>600000</ExpiresIn>
+			<GenerateResponse/>
+		</OAuthV2>
+		```
+	Exchange Authorization Code for Access Token
+		```
+		<OAuthV2 name="GetAuthToken">
+			<Operation>GenerateAccessToken</Operation>
+			<ExpiresIn>360000000</ExpiresIn>
+			<SupportedGrantTypes>
+				<GrantType>authorization_code</GrantType>			★
+			</SupportedGrantTypes>
+			<GrantType>request.queryparam.grant_type</GrantType>	★
+			<GenerateResponse/>
+		</OAuthV2>
+		```
+	Verify Access Token Policy
+		```
+		<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+		<OAuthV2 async="false" continueOnError="false" enabled="true" name="VerifyOAuthToken">
+			<DisplayName>OAuth Verify Token</DisplayName>
+			<Operation>VerifyAccessToken</Operation>
+		</OAuthV2>
+		```
+	Verify OAuth Token Policy
+	> curl -H "Authorization: Bearer {access_token}" http://myorg-test.apigee.net/v1/cc/oauth_cc_weather/forecastrss?w=12797282
+
 2.1.7. Implicit Grant Type
-	
+	Implicit - Resources are owned by a particular user, and the requesting application is an untrusted browser-based app written in a scripting language such as JavaScript. Very complex and less secure than Auth Code
+	main idea
+		User --> Client --> Resource Server
+		Client is, for example, a SPA written in JavaScript.
+		This flow is a simplified version of the authorization code flow. It is typically used with browser based clients.
+	Actors
+		User
+		User Agent
+		Client
+		Apigee (Authorization Server)
+		Authenication Server (Login App)
+		Resource Server
+	Sequence diagram
+		Main diff from auth code grant type is:	the implicit grant does not return an authorization code.
+		Other sequences are same as authorization code flow.
+	Generate Authorization Code
+		```
+		<OAuthV2 async="false" continueOnError="false" enabled="true" name="GetAuthCode">
+			<DisplayName>GetAuthCode</DisplayName>
+			<ExpiresIn>600000</ExpiresIn>
+			<GenerateResponse/>
+		</OAuthV2>
+		```
+	Verify Access Token Policy
+		```
+		<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+		<OAuthV2 async="false" continueOnError="false" enabled="true" name="VerifyOAuthToken">
+			<DisplayName>OAuth Verify Token</DisplayName>
+			<Operation>VerifyAccessToken</Operation>
+		</OAuthV2>
+		```
+	Verify OAuth Token Policy
+	> curl -H "Authorization: Bearer {access_token}" http://myorg-test.apigee.net/v1/cc/oauth_cc_weather/forecastrss?w=12797282
+
 2.1.8. Miscellaneous
-	
+	OAuth - Misc.
+	Refreshing tokens
+		```xml
+		<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+		<OAuthV2 async="false" continueOnError="false" enabled="true" name="RefreshToken">
+			<DisplayName>OAuth Refresh Token</DisplayName>
+			<Operation>RefreshAccessToken</Operation>
+			<ExpiresIn>86400000</ExpiresIn>
+			<ReuseRefreshToken>true</ReuseRefreshToken>
+			<GrantType>request.queryparam.grant_type</GrantType>
+			<RefreshToken>request.formparam.refresh_token</RefreshToken>
+			<GenerateResponse/>
+		</OAuthV2>
+		```
+		> curl -v -u "vn0zG4cnSWaWIzdwBZgnREI1NGORDXXz:uZt7LeDbq7vX90NP" -d "grant_type=refresh_token&refresh_token=LRYvVXXgWwbuEZivoe8XvZE2WPdzX9fp" "http://myorg-test.apigee.net/v1/oauth/refresh_accesstoken"
+	Invalidating access and refresh tokens
+		```xml
+		<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+			<OAuthV2 async="false" continueOnError="false" enabled="true" name="InvalidateToken">
+			<DisplayName>OAuth Invalidate Token</DisplayName>
+			<Operation>InvalidateToken</Operation>
+			<Tokens>
+				<Token type="accesstoken" cascade="true">request.queryparam.access_token</Token>
+				<Token type="refreshtoken" cascade="true">request.queryparam.refresh_token</Token>
+			</Tokens>
+		</OAuthV2>
+		```
+	Access token attributes
+		```
+		<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+		<OAuthV2 async="false" continueOnError="false" enabled="true" name="oauth-generate-token">
+			<DisplayName>OAuth Generate Token</DisplayName>
+			<Operation>GenerateAccessToken</Operation>
+			<ExpiresIn>86400000</ExpiresIn>
+			<SupportedGrantTypes>
+				<GrantType>client_credentials</GrantType>
+			</SupportedGrantTypes>
+			<GrantType>request.queryparam.grant_type</GrantType>
+			<Attributes>
+				<Attribute name=”attr_name1” ref=”flow.variable” display="true|false">value1</Attribute>
+				<Attribute name=”attr_name2” ref=”flow.variable” display="true|false">value2</Attribute>
+			</Attributes>
+		</OAuthV2>
+		```
+	GetOAuthV2Info to retrieve access token attributes
+		```
+		<GetOAuthV2Info name="GetTokenAttributes">
+			<AccessToken ref="request.queryparam.access_token"></AccessToken>
+		</GetOAuthV2Info>
+		```
+		Variables:
+		- apigee.access_token				= ...
+		- apigee.apiproduct.name			= Certification_OAuthClientCredentialsWeather
+		- apigee.client_id					= ...
+		- apigee.developer.app.name			= CertificationOAuthCCWeather
+		- apigee.developer.email			= cerfifieddev@apigee.com
+		- apigee.developer.id				= c...
+		- apiproxy.name						  Certification_OAuthGetSetInfo
+		- environment.name					  test
+		- flow.resource.name				
+		- oauthV2.failed					= false
+	SetOAuthV2Info to set access token attributes
+		```
+		<SetOAuthV2Info name="SetOAuthV2Info">
+			<AccessToken ref="request.queryparam.access_token"></AccessToken>
+			<Attributes>
+				<Attribute name="myAttribute1">foo</Attribute>
+				<Attribute name="myAttribute2">baaz</Attribute>
+			</Attributes>
+		</SetOAuthV2Info>
+		```
+
 2.2. Lab: OAuth
-2.2.1. Client Credentials Grant Type
+2.2.1. Client Credentials Grant Type		15 min
+	In this lab you will learn how to:
+	- create an OAuth proxy that supports the client credentials grant type
+	- import a shared flow that handles token validation and traffic management
+	- update your Products proxy to use the shared flow
+	- test the OAuth proxy and updated Products proxy.
+
+	Part 1: Create an OAuth proxy
+		Flow
+			Client app <--> Apigee Edge <--> Resource Server
+			1. Client app --> Apigee Edge:				/accesstoken (Client ID, Client Secret)
+			2. Apigee Edge internal:					Validate credentials
+			3. Client app <-- Apigee Edge				access_token, scope, expiry_time
+			4. Client app --> Apigee Edge				get_protected_resource(access_token)
+			5. Apigee Edge internal:					validate token
+			6. Apigee Edge --> Resource Server			get resource
+			7. Apigee Edge <-- Resource Server			resource
+			8. Client app <-- Apigee Edge				resource
+		Select Develop > API Proxies from nav,
+			Client +Proxy on the right corner
+				Select `No Target` and then click `Next` button
+					Entery Proxy details, and click `Next` button
+						Proxy Name: OAuth
+						Proxy Base Path: /oauth
+						Description: OAuth 2.0 Proxy
+					Select `Pass through (none)` and then click `Next`
+					Unselect `default` and click `Next` // so that the proxy is only deployed on https endpoint (secure), as required for OAuth 2.0
+					Leave the `Deployment Environments` set only to `test` and then click the `Build and Deploy` button
+				Click the `View OAuth proxy in the editor` link to enter the proxy editor
+			From the `Overview` tab, click on the `DEVELOP` tab to edit the proxy.
+			Now we will need to add a conditional flow to handle generating the access token.
+			Click on the + button next to the default section under `Proxy Endpoints`.
+				Enter Conditional Flow details, and then click Add button
+				- Flow Name: GetAccessToken
+				- Description: Flow to issue an OAuth 2.0 access token
+				- Condition Type: Path
+				- Condition: /accesstoken
+				- Leave `Optional Target URL` empty
+			Now we will also add the policy to handle generating the access token.
+			Select GetAccessToken flow and click `+ Step` button to add a policy to the request
+				Select the `OAuth v2.0 policy`, enter details and click Add button
+					- Display Name: OA-GenerateAccessToken
+					- Name: (Same)
+					Provide the following proxy configuration and click the Save button.
+					```xml
+					<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+					<OAuthV2 async="false" continueOnError="false" enabled="true" name="OA-GenerateAccessToken">
+						<DisplayName>OA-GenerateAccessToken</DisplayName>
+						<Operation>GenerateAccessToken</Operation>
+						<!-- This is in milliseconds, so expire in an hour -->
+						<ExpiresIn>3600000</ExpiresIn>
+						<SupportedGrantTypes>
+							<GrantType>client_credentials</GrantType>
+						</SupportedGrantTypes>
+						<GrantType>request.formparam.grant_type</GrantType>
+						<GenerateResponse enabled="true"/>
+						<Tokens/>
+					</OAuthV2>
+					```
+			Now we will add it to the API Product. Go to Publish > API Products, select the product's API Product and click `Edit`,
+				click the `+ API Proxy` button under Resources > API Proxies section
+					select the `OAuth` proxy from the dropdown and click `Save`.
+	Part 2: Import existing shared flow
+		Import a shared flow that handles token validation and traffic management to incorporate into the Product's proxy.
+		First, download the shared flow: Request-Validation.zip > E:\WS\Coursera\api-security-apigee-gcp\
+			https://d3c33hcgiwev3.cloudfront.net/UChynDhPEeig8Q74SlgkIA_50652d60384f11e88259c75bedf98fad_Request-Validation.zip?Expires=1590624000&Signature=UjTNokQz3RSWgN-KyqiIL48C0T0xi6CCLEAMaZKZDpaqKyXP75A~vPM0n7MrvAmcySRNTVG6lspap1sMczWZg~PpVCXEw5VlzSzyepyohIrNtqj-VzEQJE1cjQkJFtfJDX2uxcXxFGiVVwMq-99bzJW8O5~GbGiRMSXHS4J63Hc_&Key-Pair-Id=APKAJLTNE6QMUY6HBC5A
+			sharedflowbundle\
+				policies\
+					AM-RemoveAuthHeader.xml
+					Quota.xml
+					Spike-Arrest.xml
+					Verify-OAuth-Token.xml
+				sharedflows\
+					default.xml
+				Request-Validation.xml
+		Select `Develop` > `Shared Flows`, click the `+ Share Flow` button on the top right corner and click `Upload bundle...` option
+			Select Request-Validation.zip file and then click the Create button
+				Deploy the shared flow to the `test` environment
+	Part 3: Implement the shared flow
+		Update the Products proxy to use the shared flow.
+		First select `Develop` > `API Proxies`, select `Products` proxy from the proxy list, then click the `Develop` tab to edit the proxy.
+			Select the `Preflow` in the default section under `Proxy Endpoints` then click the `+ Step` button to add a policy to the request.
+				Select the `Flow Callout` policy, enter as below and then click Add button. // Import to the Request Preflow since we want it to be executed first for all proxy calls
+					Display Name: FC-RequestValidation
+					Name: Same
+					Shared Flow: Request-Validation
+				Drag and drop the FC-RequestValidation step to the beginning of the `Preflow`,
+					remove the existing FlowCallout-Security-Traffic-Mgmt sharedflow as we don't need it.
+						click the Save button to save the proxy.
+	Part 4: Test the proxies
+		By getting an OAuth access token and validate that the Products proxy enforces the client credentials grant type.
+		First invoke the GET /products request in Postman. You should see a failed authorization since no OAuth token was passed in the request
+		Update the POST /accesstoken request in Postman with your consumer key and secret and click the Update Request.
+			POST /accesstoken
+				Authorization tab: Enter consumer key as Username, secret key as Password
+			Then invoke the API call by clicking Send. This time you should get an access token in the response.
+		Add the access token received above as a `Bearer` token in the Authorization header of the GET /products with Bearer Token request in Postman and invoke the API call.
+		Now you should see a successful response!
 2.2.2. Password Grant Type
+	OAuth 2.0 - Resource Owner Password Credentials Grant Type
+	Learn how to update the OAuth proxy to supports the resource owner password credentials grant type
+	Part 1: Update OAuth proxy
+		Update the OAuth proxy that generates an OAuth token using the OAuth 2.0 resource owner password credentials grant type flow.
+		Flow:
+			Client App <--> Edge <--> User Authentication <--> Resource Server
+			```
+			1. Client App --> Edge				/token(grant_type=password, client_id, client_server, username, password)
+			3. Edge internal					validate_credentails
+			4. Edge --> User Authentication		/authentication(username, password)
+			5. User Authentication internal		validate_credentails
+			6. Edge <-- User Authentication		authentication_success
+			7. Client App <-- Edge				return(access_token, refresh_token, expiry)
+			8. Client App --> Edge				get_protected_resource(access_token)
+			9. Edge internal					validate_token
+			10. Edge --> Resource Server		get_resource
+			11. Edge <-- Resource Server		resource
+			12. Client App <-- Edge				resource
+			```
+		First select `Develop` > `API Proxies`,
+			select `OAuth` API Proxy that you built in the previous lab to enter the proxy editor
+				from the `OVERVIEW` tab, click on the `DEVELOP` tab to begin editing the proxy
+					update the OAuthV2 policy with the one below
+					```xml
+					<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+					<OAuthV2 async="false" continueOnError="false" enabled="true" name="OA-GenerateAccessToken">
+						<DisplayName>OA-GenerateAccessToken</DisplayName>
+						<Operation>GenerateAccessToken</Operation>
+						<!-- This is in milliseconds, so expire in an hour -->
+						<ExpiresIn>3600000</ExpiresIn>
+						<SupportedGrantTypes>
+							<GrantType>client_credentials</GrantType>
+							<GrantType>password</GrantType>				<!-- add this -->
+						</SupportedGrantTypes>
+						<GrantType>request.formparam.grant_type</GrantType>
+						<UserName>request.formparam.username</UserName>	<!-- add this -->
+						<PassWord>request.formparam.password</PassWord>	<!-- add this -->
+						<GenerateResponse enabled="true"/>
+						<Tokens/>
+					</OAuthV2>
+					```
+				Next, use a Service Callout policy to send credentials to an external identity service.
+				Select GetAccessToken under default sectoin of Proxy Endpoints on the Navigator pane, and click `+ Step` button.
+					Select the `Service Callout` policy, enter SC-AuthenticateUser as Display Name and Name and leave HTTP Target empty, click Add button.
+						Set SC-AuthenticateUser policy as below
+						```
+						<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+						<ServiceCallout name="SC-AuthenticateUser">
+							<DisplayName variable="authRequest">
+							<Request variable="authRequest">
+								<Set>
+									<FormParams>
+										<FormParam name="username">{request.formparam.username}</FormParam>
+										<FormParam name="password">{request.formparam.password}</FormParam>
+									<Verb>POST</Verb>
+								</Set>
+							</Request>
+							<Response>
+							<HTTPTargetConnection>
+								<URL>https://{org}-{env}.apigee.net/v1/identity/authenticate</URL> <!-- Replace the org and env with the Apigee Org and Env respectively -->
+							</HTTPTargetConnection>
+						</ServiceCallout>
+						```
+						Drag the policy to the left of OAuth policy to make sure that the Service Callout policy is executed before the OAuth policy.
+				In the Proxy flow under GetAccessToken, include the following condition so that the Service Callout happens only for the password grant type.
+				```
+				...
+				<Step>
+					<Name>SC-AuthenticateUser</Name>
+					<Condition>request.formparam.grant_type = "password"</Condition>
+				</Step>
+				...
+				```
+				After all click the Save button to save the proxy.
+	Part 2: Test the proxy
+		By getting an OAuth access token using the resource owner password credentials grant type flow.
+		First update the `POST /accesstoken (password grant)` password grant type request in Postman with your consumer key, secret, username and password and invoke the API call, you should get an access token and refresh token in the response.
+			Body tab:
+				Select "x-www-form-urlencoded"
+				username: apininja
+				password: iloveapis
+				grant_type: password
+			Authroization tab:
+				Username: consumer key
+				Password: secret
+		Change the credentials to be invalid and confirm that you receive an error.
 2.2.3. OAuth 2.0 - Misc
+	Learn
+		- Use custom attributes while generating new access tokens
+		- Retrieve the custom attributes once the access token is verified by Apigee Edge
+		- Generate an access token using the refresh token
+	Part 1: Update OAuth proxy to include the attributes we get from the Service callout
+		Select `Develop` > `API Proxyies`,
+			select the OAuth API Proxy that built in the previous lab to enter the proxy editor,
+				click on `DEVELOP` tab
+		Now extract the info (name and email) from the response returned by the callout server, and store them as customer attributes.
+		Select GetAccessToken flow from default section of Proxy Endpoints and click `+ Step` button to
+			add an `Extract Variable` policy, enter the Display Name: EV-Extract-User-Info then click Add button,
+				paste the follow code.
+				```xml
+				<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+				<ExtractVariables async="false" continueOnError="false" enabled="true" name="EV-Extract-User-Info">
+					<DisplayName>EV-Extract-User-Info</DisplayName>
+					<Properties/>
+					<IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+					<JSONPayload>
+						<Variable name="name">
+							<JSONPath>$.name</JSONPath>
+						</Variable>
+						<Variable name="email">
+							<JSONPath>$.email</JSONPath>
+						</Variable>
+					</JSONPayload>
+					<Source clearPayload="false">authenticationResponse</Source>
+					<VariablePrefix>authRespPrefix</VariablePrefix>
+				</>
+				```
+		Click on GetAccessToken flow and set condition for executing only when the grant type is password.
+			```
+			...
+			<Step>
+				<Name>EV-Extract-User-Info</Name>
+				<Condition>request.fromparam.grant_type = "password"</Condition> <!-- Add this -->
+			</Step>
+			...
+			```
+		Save. Then Click the OA-GenerateAccess policy from the Policies section on the left pane and update as below.
+			```xml
+			<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+			<OAuthV2 async="false" continueOnError="false" enabled="true" name="OA-GenerateAccessToken">
+				<DisplayName>OA-GenerateAccessToken</DisplayName>
+				<Operation>GenerateAccessToken</Operation>
+				<ExpiresIn>3600000</ExpiresIn>
+				<SupportedGrantTypes>
+					<GrantType>client_credentials</GrantType>
+					<GrantType>password</GrantType>
+				</SupportedGrantTypes>
+				<GrantType>request.formparam.grant_type</GrantType>
+				<UserName>request.formparam.username</UserName>
+				<PassWord>request.formparam.password</PassWord>
+				<GenerateResponse enabled="true"/>
+				<Attributes>
+					<Attribute name="attr_user" ref="authRespPrefix.name" display="true"/>	<!-- add this -->
+					<Attribute name="attr_email" ref="authRespPrefix.email" display="true"/>	<!-- add this -->
+				</Attributes>
+				<Tokens/>
+			</OAuthV2>
+			```
+		Test by hitting the POST /accesstoken(password grant) request in Postman.
+	Part 2: Verify custom attributes
+		Check if the custom attributes that was set to the token is being displayed as flow variables.
+		Select `Develop` > `API Proxies`, select the Products API Proxy that you built in the previous lab,
+			click on the `TRACE` tab and start a new session,
+				invoke the GET /products with Bearer Token by passing the access token you got from the POST /accesstoken(password grant) request in Postman.
+					then click the OAuth Verify Access Token policy (red lock icon) in the Transaction Map, in the the Variables list, you can find all the custom attributes assigned with a prefix access token.
+	Part 3: Generate Access Token using Refresh Token
+		Select `Develop` > `API Proxies`, select the OAuth API Proxy,
+			click on `DEVELOP` tab to begin editing the proxy,
+				click `+` button next to default under Proxy Endpoints to create a new Conditional flow for the refresh token.
+					provide the following details and Add and Save the proxy changes after all.
+					- Flow Name: Refresh_Token
+					- Description: Generate Access Token from Refresh Token
+					- Condition Type: Select Path and Verb
+					- Path: /refresh_accesstoken
+					- Verb: Select POST
+				Click the Refresh_Token flow and click `+ Step` to add a new `OAuth v2.0` policy called OA-RefreshToken in the Response flow.
+				```xml
+				<?xml version="" encoding="" standalone=""?>
+				<OAuthV2 async="false" continuerOnError="false" enabled="true" name="OA-RefreshToken">
+					<DisplayName>OA-RefreshToken</DisplayName>
+					<Operation>RefreshAccessToken</Operation>
+					<ExpiresIn>3600000</ExpiresIn>
+					<ReuseRefreshToken>true</ReuseRefreshToken>
+					<GrantType>request.formparam.grant_type</GrantType>
+					<RefreshToken>request.formparam.refresh_token</RefreshToken>
+					<GenerateResponse/>
+				</OAuthV2>
+				```
+	Part 4: Test Refresh Token flow
+		Invoke the POST /accesstoken(password grant) request in Postman. Get the refresh token from the response,
+			then invoke the POST /refreshtoken request by passing the refresh token in Postman with the correct authorization in the Headers tab.
+			You should get a valid response with a new access token from the Body tab.
+			Next you can use this newly generated access token to call Products API.
+		
 2.3. Transport Security and SAML
 2.3.1. Transport Security(TLS)
+	Edge Support for TLS
+		- Public and private cloud
+		- One-way TLS	Client verifies server
+		- Two-way TLS	Mutual auth between client and server
+	What data is encrypted via TLS?
+		- URL
+		- Headers
+		- Query params
+		- HTTP verb
+		- Payload
+		- NOT: ONLY destination server & payload size are known
+	Sensitive Data and TLS
+		Use payload or headers, rather than
+		- No passwords in query parameters	TLS encrypts data in motion not at rest
+		- Avoid sensitive info in URLs		might be logged
+	TLS & Edge
+		Client --> Edge --> Target
+	Edge Keystores & Trustores
+		Keystores and Truststores used for client and target communication
+		- Keystore		Holds server certificates that are presented to the client
+		- Truststore 	Valid client certificates that are presented to the server after the cilent has validated the server certificate
+	one-way TLS
+		1. Requests protected resource		CLIENT --> SERVER
+		2. Presents certificate				SERVER KEYSTORE --> SERVER --> CLIENT
+		3. Verifies certificate				CLIENT --> TRUSTSTORE (SERVER CERTIFICATE)
+		4. Accesses protected resource		CLIENT <--> SERVER
+	two-way TLS
+		1. Requests protected resource		CLIENT --> SERVER
+		2. Presents certificate				SERVER KEYSTORE --> SERVER --> CLIENT
+		3. Verifies certificate				CLIENT --> TRUSTSTORE (SERVER CERTIFICATE)
+		4. Presents certificate				CLIENT KEYSTORE --> CLIENT --> SERVER
+		5. Verifies certificate				SERVER --> TRUSTSTORE (CLIENT CERTIFICATE)
+		6. Accesses protected resource		CLIENT <--> SERVER
+	Configuring 2-way TLS from client to Edge (Public Cloud)
+		1. Server keystore		Create a keystore and upload certificate and private key of the server
+		2. Truststore			If the client uses a self-signed certificate, or a certificate that is not signed by a trusted CA, create a truststore on Edge that contains the CA chain of the client certificate
+		3. Virtualhost			Create a support ticket so the virtualhost is created with the suitable configuration.
+			```
+			<VirtualHost name="myTLSVHost">
+				<HostAliases>
+					<HostAlias>apiTLS.myCompany.com</HostAlias>
+				</HostAliases>
+				<Port>443</Port>
+				<SSLInfo>
+					<Enabled>true</Enabled>
+					<ClientAuthEnabled>false</ClientAuthEnabled>
+					<KeyStore>myTestKeystore</KeyStore>
+					<KeyAlias>myKeyAlias</KeyAlias>
+				</SSLInfo>
+			</VirtualHost>
+			```
+	Securing calls to the backend
+		Generally the backend is locked down. Options for securing the communication to the backend server:
+		- Credentials
+		- OAuth		adds significant complexity to backend calls
+		- IP Whitelisting	!but can be spoofed
+		- Two-way TLS
+	Implementing 2-way TLS from Apigee Edge to backend server
+		  - Obtain/generate client certificate for Edge
+		  - Create and populate a keystore on Edge containing Edge's cert and private key
+		  - Creaet and populate a truststore on Edge containing trusted certs
+		  - Configure the TargetEndpoint or TargetServer
+	Configuring 2-way TLS from Edge to target
+	    ```
+	    <TargetServer name="target1">
+	    	<SSLInfo>
+	    		<Enabled>true
+	    		<ClientAuthEnabled>true</ClientAuthEnabled>
+	    		<KeyAlias>myKeystore</KeyAlias>
+	    		<KeyStore>myKey</KeyStore>
+	    		<TrustStore>myTrustStore</TrustStore>
+	    	</SSLInfo>
+	    </TargetServer>
+	    ```
+	Data Masking
+		Edge's trace tool allows developers to capture runtime traffic. Some of sensitive information may be exposed, such as passwords, credit card numbers, or personal health information.
+		Edge provides data masking to filter this data out of the capturd trace infomation.
+		- block values in XML payloads, JSON payloads, and variables
+		Data masking configurations can be set
+		- globally for an organization
+		  POST /v1/o/{org}/maskconfigs
+		- or on specific apis
+		  POST /v1/o/{org}/apis/{api}/maskconfigs
+	Using mask configurations
+		```
+		<MaskDataConfiguration name="default">
+			<XPathsRequest>
+				<XPathRequest>/apigee:Greeting/apigee:User</XPathRequest>
+			</XPathsRequest>
+			<XPathsResponse>
+				<XPathResponse>/apigee:Greeting/apigee:User</XPathResponse>
+			</XPathsResponse>
+			<JSONPathsRequest>
+				<JSONPathRequest>$.store.book[*].author</JSONPathRequest>
+			</JSONPathsRequest>
+			<JSONPathsResponse>
+				<JSONPathResponse>$.store.book[*].author</JSONPathResponse>
+			</JSONPathsResponse>
+			<XPathsFault>
+				<XPathFault>/apigee:Greeting/apigee:User</XPathFault>
+			</XPathsFault>
+			<JSONPathsFault>
+				<JSONPathFault>$.store.book[*].author</JSONPathFault>
+			</JSONPathsFault>
+			<Variables>
+				<Variable>request.header.user-agent</Variable>
+				<Variable>request.formparam.password</Variable>
+			</Variables>
+		</MaskDataConfiguration>
+		```
 2.3.2. SAML
+	Security Assertion Markup Language(SAML)
+	- exchange authentication and authorization information in XML format
+	- security assertions between:
+	  - Identity Provider - generates SAML tokens
+	  - Server Provider - validates SAML tokens
+	- Apigee Edge acts as Identity Provider and Server Provider
+	- support SAML Core Specification Version 2.0 and WS-Security SAML Token Profile specification Version 1.0
+	GenerateSAMLAssertion policy
+	- outbound token generation
+	- attach SAML assertions to outbound XML requests
+	- for authentication and authorization of the backend services
+	- typically attached to the TargetEndpoint request Flow
+	- requries:
+	  - issuer
+	  - keystore
+	  - subject
+	  - xpath
+	Example:
+	```
+	<GenerateSAMLAssertion name="SAML" ignoreContentType="false">
+		<CanonicalizationAlgorithm />
+		<Issuer ref="reference">Issuer name</Issuer>		★
+		<KeyStore>											★
+			<Name ref="reference">keystoername</Name>
+			<Alias ref="reference">alias</Alias>
+		</KeyStore>
+		<OutputVariable>
+			<FlowVariable>assertion.content</FlowVariable>
+			<Message name="request">
+				<Namespaces>
+					<Namespace prefix="test">http://www.example.com/test/</Namespace>
+				</Namespaces>
+				<XPath>/envelope/header</XPath>				★
+			</Message>
+		</OutputVariable>
+		<SignatureAlgorithm />
+		<Subject ref="reference">Subject name</Subject>		★
+		<Template ignoreUnresolvedVariables="false">
+			<!-- A lot of XML goes here, in CDATA, with {} around each variable -->
+		</Template>
+	</GenerateSAMLAssertion>
+	```
+	ValidateSAMLAssertion policy
+	- inbound authentication and authorization
+	- validate SAML assertions to inbound SOAP requets
+	  If valid, sets variables for further processing. Rejects if invalid.
+	- typically attached to the ProxyEndpoing request Flow
+	- requires:
+	  - source
+	  - xpath
+	  - truststore	contains the trusted X.509 certificate used to validate the digital signature on the SAML assertion.
+	Example:
+	```
+	<ValidateSAMLAssertion name="SAML" ignoreContentType="false">
+		<Source name="request">															★
+			<Namespaces>
+				<Namespace prefix="soap">http://schemas.xmlsoap.org/soap/envelope/</Namespace>
+				<Namespace prefix="wsse">http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd</Namespace>
+				<Namespace prefix="saml">urn:oasis:names:tc:SAML:2.0:assertion</Namespace>
+			</Namespaces>
+			<XPath>/soap:Enveloper/soap:Header/wsse:Security/saml:Assertion</XPath>		★
+		</Source>
+		<TrustStore>TrustStoreName</TrustStore>											★
+		<RemoveAssertion>false</RemoveAssertion>
+	</ValidateSAMLAssertion>
+	```
 2.4. Quiz
 2.4.1. OAuth and Network Security
-2.5. End of Specialization Wrap Up
-2.5.1. Wrap Up
-2.6. Optional: Optional Labs
-2.6.1. Authorization Code Grant Type
-2.6.2. Honors Labs Completion
+	1. OAuth scope defines what the access token can do and what resources it can access?					True
+	2. Which of the following is NOT an OAuth Grant Type?
+		Authorization Code | Password | Implicit | None of the above | Client Credentials					None of the above
+	3. Client Credential Grant Type is the Most Secure of the 4 OAuth Grant Types?					False
+	4. Why would you want to use an Authorization Grant Type?											b. an app to acess resource
+		a. If the Access Token expires too quickly and you want to extend it's lifespan.
+		b. If there is a client application that wants access to a third party resource server.
+		c. If you want all application developers from a trusted client to use the same ID.
+	5. What's the primary difference in when to use Implicit Grant types over Authorization Grant Types?				b. untrusted browser based app
+		a. Implicit Grant Types are used when the requesting application is trusted.
+		b. Implicit Grant Types are used when the untrusted third party application is a browser based application written in a scripting language such as Javascript.
+		c. Implicit Grant Types are no different that Authorization Grant Types in terms of the use case.
+	6. Transport Security (TLS) protects....																The backend servers
+		a. The front end UI.
+		b. Backend Servers.
+		c. The Application Source Code.
+
+2.5. Optional: Optional Labs
+2.5.1. Authorization Code Grant Type
+	The authorization code grant type requires a step where the end user logs in to the resource server (where protected resources owned by the user are stored)
+		and then gives explicit consent for the app to access those resources.
+	The key to this flow is that the client app never gets to see the user's login credentials for the protected resources,
+		as the authorization on the resource server is handled between the user, the resource server, and the OAuth authorization server.
+	Implement the OAuth 2.0 authorization code grant type with Apigee Edge as the authorization server.
+		REF: IETF specification https://tools.ietf.org/html/draft-ietf-oauth-v2-31
+		Prerequisites
+			- Login to enterprise.apigee.com
+			- The name of the organization
+			- node.js and npm https://nodejs.org/
+			- Apigeetool https://www.npmjs.com/package/apigeetool
+			- Yeoman http://yeoman.io/
+			- Install oauth-auth-code-grant-sample generator: `npm install generator-oauth-auth-code-grant-sample -g`
+			Note) No compatible in Windows 10
+		Deploy
+			> yo oauth-auth-code-grant-sample
+			Follow the prompts to enter you user name, password, API URL Endpoint(https://api.enterprise.apigee.com), organization name and environment name.
+		Test
+			Open http://{myorg}-{myenv}.apigee.net/web
+			Click the "Login with Apigee Example Auth" button to send a request to the authorization server (Apigee Edge), and which redirects the browser to a login page. Register or log in there.
+			Give consent, also limit the type of access the app will have to the resources.
+			Retrieve the access token.
+		=> Flow summary
+			- The login app communicates to the authorization server that the login was successful.
+			- The authorization server generates an authorization code and returns it to the app.
+			- The app puts the code into a request to the authorizatoin server for an access token, also with client ID and client secret keys.
+			- The authorization server validates the auth code and other credentials, and if successful, returns an access token back to the client.
+			- Now, with an access token, the client can request resources from the protected API.
+	Flow diagram outlining the steps of this flow:
+		Actors: User <--> User Agent <--> Webserver App (webserver-app bundle) <--> Authorization Server (oauth2 bundle) <--> Login App (login-app bundle) <--> User Store (user-mgmt-v1 bundle) <--> Resource Server
+		```
+		User --> User Agent			: Initiate
+		User Agent --> Web App		: Initiate
+		User Agent <-- Web App		: 200 OK, return Page with button to Login Page
+		User --> User Agent			: user click on Login button
+		User Agent --> Login App	: send to Login Page
+		User Agent <-- Login App	: return login page
+		In User Agent				: show login page
+		User --> User Agent			: provide credentials
+		User Agent --> Login App	: submit login
+		Login App --> User Store	: send credentials
+		In User Store				: validate credentials
+		Login App <-- User Store	: credential response
+		alt[Valid credentials]
+		User Agent <-- Login App	: return consent form
+		In User Agent				: show consent form
+		User --> User Agent			: provide consent
+		User Agent --> Login App	: submit consent
+		Auth Server <-- Login App	: /oauth/UserAuthorize(client_id, redirect_url, scope, user-specific info)
+		In Auth Server				: Validate request redirect_url against registered redirect_url for client_id
+		In Auth Server				: Create authorization code w/ user-specific info
+		Auth Server --> Login App	: 302 location redirect_url?code=(auth_code)&scope=(scope)
+		User Agent <-- Login App	: 302 location redirect_url?code=(auth_code)&scope=(scope)
+		User Agent --> Web App		: execute redirect: redirect_url?code=(auth_code)&scope=(scope)
+		In Web App					: extract auth code and scope
+		Web App --> Auth Server		: /oauth/token(client_id, client_secret, code, grant_type, scope, redirect_url)
+		In Auth Server				: validate client_id, secret, and redirect_url(against redirect_url from auth code request)
+		Web App <-- Auth Server		: return access token, scope, expiry time, refresh token
+		Web App --> Auth Server		: get protected resource(access token)
+		In Auth Server				: validate token
+		Auth Server --> Resource Server : get resource
+		Auth Server <-- Resource Server : return resource
+		Web App <-- Auth Server		: return resource
+		alt[Invalid credentials]
+		User Agent <-- Login App	: return access denied
+		User <-- User Agent			: show access denied
+		```
+	In summary:
+		1. User initiates 
+		2. 
+		3. 
+		4. 
+		5. 
+		6. 
+		7. 
+2.5.2. Honors Labs Completion
+	(Optional Lab) Honors Quiz: Honors Labs Completion
+		TODO...
 
 
 ## COURSE: API Development on Google Cloud's Apigee API Platform
