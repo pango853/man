@@ -393,7 +393,7 @@ Overview of the basic concepts of APIs.
 				prompt: Please provide the Apigee Edge username:  your-gmail-account@gmail.com
 				prompt: Please provide the Apigee Edge password:  *************
 
-				prompt: Please provide the Apigee Edge Organization name:  pango853-eval
+				prompt: Please provide the Apigee Edge Organization name:  xxxxxxxxxxxxxxxxxxxx-eval
 				prompt: Please provide the Apigee Edge Environment name:  test
 				prompt: Please provide the Firebase Host name:  my-firebase-project-name.firebaseio.com
 			(!) You also need mvn first to run above.

@@ -40,16 +40,16 @@ CanonifyURLs=true
 # GITHUB
 
 
-For pango853.github.io
-https://github.com/pango853/pango853.github.io/settings
+For YOUACCOUNT.github.io
+https://github.com/YOUACCOUNT/YOUACCOUNT.github.io/settings
 config.toml
-	baseURL = "https://pango853.github.io/"
+	baseURL = "https://YOUACCOUNT.github.io/"
 
-For pango853.github.io/subblog
-https://github.com/pango853/subblog/settings
+For YOUACCOUNT.github.io/subblog
+https://github.com/YOUACCOUNT/subblog/settings
 	In `GitHub Pages` section, specify `Source`
 config.toml
-	baseURL = "https://pango853.github.io/subblog"
+	baseURL = "https://YOUACCOUNT.github.io/subblog"
 
 
 
