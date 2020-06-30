@@ -189,20 +189,23 @@ Section 4: Requirements and Business Analysis
 
 
 # Cousera
+https://www.coursera.org/courses?query=apigee
 
 COURSES:
 - Development Track
   - [x] API Design and Fundamentals of Google Cloud's Apigee API Platform
-  - [ ] API Development on Google Cloud's Apigee API Platform
-  - [ ] API Security on Google Cloud's Apigee API Platform
+  - [x] API Development on Google Cloud's Apigee API Platform
+  - [x] API Security on Google Cloud's Apigee API Platform
 - Installation & Administration Track
   - [ ] Install and Manage Google Cloud's Apigee API Platform
-  - On Premises Management, Security, and Upgrade with Google Cloud's Apigee API Platform
-    - [x] On Premises Installation and Rundamentals with Google Cloud's Apigee API Platform
+  - [x] On Premises Management, Security, and Upgrade with Google Cloud's Apigee API Platform
+  - [x] On Premises Installation and Rundamentals with Google Cloud's Apigee API Platform
   - [ ] On-Premises Capacity Upgrade and Monitoring with Google Cloud's Apigee API Platform
 
 
+
 ## COURSE: API Design and Fundamentals of Google Cloud's Apigee API Platform
+https://www.coursera.org/learn/api-design-apigee-gcp
 
 ### Specialization Overview
 0.1 Welcome
@@ -363,21 +366,80 @@ Overview of the basic concepts of APIs.
 	- setup the Firebase Realtime database -- store sample data for backend
 	- setup the edge-developer-training-backend proxy --  and setup APIs to act as Moon Digital's backend e-commerce services for product management, order management, inventory management, etc.
 	Steps:
+		First download and extract setup.zip: https://d3c33hcgiwev3.cloudfront.net/PBf3xN27TAWX98Tdu9wFfg_1db375be66ad402e9eab488c17185a95_setup.zip?Expires=1593648000&Signature=QthBos9rGB0z8vnQJxILd0mrDuvK1Ok66lC--neJ5enEpv133sqqXHLB8lrALlqWbIYflnagYDJKSIIcn6g-xTXEA2rMHmAaUamaEp-6Gr8lVrkFvqiiQNavW8im2XccSFi70wJBO8heIFzjNyk38ALdt8I4R05tX2TalKvYR3c_&Key-Pair-Id=APKAJLTNE6QMUY6HBC5A
 		Access Firebase Console and Import Data
-			https://firebase.google.com -> Add project -> Create database (Realtime Database) -> Import JSON -> Update Firebase Rules with auth==null -> Publish
+			https://firebase.google.com -> Add project -> Create database (Choose Realtime Database) -> click ... button and select Import JSON -> 
+				select the firebase-all.json file located in the setup/data directory and import it.
+			Update Firebase Rules, at the RULES tab, copy and paste below
+				```
+				{
+				  "rules": {
+				    ".read": "auth == null",
+				    ".write": "auth == null"
+				  }
+				}
+				```
+			After all, click Publish button
 		Firebase REST API
 			$ curl -X GET https://your-projectname.firebaseio.com/db/carts.json
 			$ curl -X GET https://your-projectname.firebaseio.com/db/carts/{item-id}.json
+			$ curl -X GET https://your-projectname.firebaseio.com/db/carts/4b1e4bda.json
+			$ curl -X GET https://your-projectname.firebaseio.com/db/users/joe.json
 		Deploy the edge-developer-training-backend proxy and dependencies
 			unzip setup.zip
 			cd setup
 			npm install
 			node setup
+				prompt: Please provide the Apigee Edge username:  your-gmail-account@gmail.com
+				prompt: Please provide the Apigee Edge password:  *************
+
+				prompt: Please provide the Apigee Edge Organization name:  pango853-eval
+				prompt: Please provide the Apigee Edge Environment name:  test
+				prompt: Please provide the Firebase Host name:  my-firebase-project-name.firebaseio.com
+			(!) You also need mvn first to run above.
+			Once its provided correctly, the script runs and deploys the backend proxies in your Apigee instance.
+			Then you can go to Develop > API Proxies. You will find 2 proxies added: `edge-developer-training-backend` and `edge-developer-training-idp`
+			- http://<org>-test.apigee.net/db or https://<org>-test.apigee.net/db
+				- Proxy Endpoints
+					Endpoint Flow Name	Method	Path/Condition
+					PreFlow	ALL	n/a
+					root	GET	
+					Get all products	GET	/products
+					Get product by ID	GET	/products/*
+					Get product availability	GET	/products/*/availability
+					Create product	POST	/products
+					Update product	PUT	/products/*
+					Get stores	GET	/stores
+					Get stores by ID	GET	/stores/*
+					Not Found	ALL	/*
+					PostFlow	ALL	n/a
+				- Target Endpoints
+					Endpoint Flow Name	Method	Condition
+					PreFlow	ALL	n/a
+					Get product by ID	GET	(proxy.pathsuffix MatchesPath "/products/*") and (request.verb = "GET")
+					Get product availabiity	GET	(proxy.pathsuffix MatchesPath "/products/*/availability") and (request.verb = "GET")
+					Create product	POST	(proxy.pathsuffix MatchesPath "/products") and (request.verb = "POST")
+					Update product	PUT	proxy.pathsuffix MatchesPath "/products/*" and request.verb = "PUT"
+					PostFlow	ALL	n/a
+			- https://<org>-test.apigee.net/v1/identity
+				- Proxy Endpoints
+					Endpoint Flow Name	Method	Path / Condition
+					PreFlow	ALL	n/a
+					authenticate	POST	/authenticate
+					PostFlow	ALL	n/a
 5.2. Lab: Creating an Open API Spec
 5.2.1. Creating an Open API Spec
-	https://apigee.com/edge -> select Organization -> Develop Specs -> + Spec -> Import URL... -> https://raw.githubusercontent.com/apigeecs/apigee-engg-training-lab-resources/master/resources/products-openapi.json -> Import
-	Design-First approach: experimenting in a designer tool like Swagger UI before generating code
-	Build-First approach: if there are exisitng back-end services and APIs. Starts from creating API Proxy first
+	https://apigee.com/edge
+		select Organization
+			Develop > Specs >  click +Spec
+				Import URL... -> https://raw.githubusercontent.com/apigeecs/apigee-engg-training-lab-resources/master/resources/products-openapi.json -> Import
+		Click the spec name to view it in the spec editor.
+		Change the `host` property,
+			"host": "<yourapigeeorgname>-test.apigee.net",
+		Then try the basics of the OSA design tool yourself.
+	Note:
+		Design-First approach: 		start by creating an OpenAPI(Swagger) document, experimenting in a designer tool like Swagger UI before generating code
+		Build-First approach: 		if there are exisitng back-end services and APIs. Starts from creating API Proxy first
 
 ## COURSE: On Premises Installation and Rundamentals with Google Cloud's Apigee API Platform
 
@@ -1702,19 +1764,89 @@ About client credentials
 		User <-- User Agent			: show access denied
 		```
 	In summary:
-		1. User initiates 
-		2. 
-		3. 
-		4. 
-		5. 
-		6. 
-		7. 
-2.5.2. Honors Labs Completion
-	(Optional Lab) Honors Quiz: Honors Labs Completion
-		TODO...
+		1. User initiates the flow by clicking a button in a web page.
+		2. The user's browser is redirected to a login page. This login page is not under the control of the client app. The client app does not participate in the login interaction, and the client app never sees the user's username or password.
+		3. If login is successful, the user is directed to a consent page. The consent page allows the user to specify scopes (what the client app is authorized to do with on behalf of the user).
+		4. After consent is given, the login app communicates with the authorization server. If redirect_URI matches the redirect_URI in Apigee Edge for that client_id, the authorization server generates an authorization code and sends it back to the client app (via a previously specified redirect URI).
+		5. The client app now has an authorization code and uses it to ask the authorization server for an access token.
+		6. Upon receiving an access token, the client app is able to access the protected APIs on the resource server by including the access token with each call.
+	Parts:
+		login-app -- A complete implementation that includes a login page and a consent page. Implements session management for extra security. Essentially, this is an API proxy deployed on Apigee Edge. Most of the implementation is in Node.js. For information on the session management feature, see login-app/README.
+		user-mgmt-v1 -- A key/value store implementation for storing the user's login information. Implemented as an API proxy and deployed on Apigee Edge. An interface to any user management system could be plugged in here, such as LDAP.
+		webserver-app -- A very simple web page implemented as an API proxy (runs on Apigee Edge to simplify this example). This is the client app -- the target of the redirect URL to which tokens and other information are sent from the authorization server. This client app never sees the user's login credentials for the resource server.
+		oauth2 -- An API proxy deployed on Apigee Edge that implements the OAuth 2.0 token endpoints. This is the Apigee Edge authorization server interface. Think of this as a service for requesting and managing OAuth tokens.
+	Clean Up
+		Use the clean up script to remove the entities (developers, apps, products) that were installed
+		cd provisioning and ./cleanup.sh <OrgName> <Environment> <Username> <Password> <MSURL>. e.g. ./cleanup.sh myorg prod test@example.com apigee123 https://api.enterprise.apigee.com
+	Further
+		- See ./login-app/README for more information
+		- Configure Loginapp
+			1. Open login-app/apiproxy/resources/node/config/config.js
+			2. Enter your environment information. The domain will typically be apigee.net. Some on-premise installations of Apigee Edge may use a different domain. For example:
+			```
+			exports.envInfo = {
+			             org: 'Your org name on Edge',
+			             env: 'Your environment on Edge (test or prod)',
+			             domain: 'apigee.net'
+			          };
+			```
+			3. Deploy the login-app bundle.
+		- Provision the webserver-app
+			1. CD to provisioning
+			2. Open the file webserver-app.xml in an editor.
+			3. Edit the <CallbackUrl> element, substituting your Edge organization and environment names.
+			4. Execute: ./provision-webserver.sh username password orgName environment https://your-ms-url.com
+			The provisioning script creates the required entities on Apigee Edge and returns two keys: consumer key and consumer secret in your terminal window. You'll need these values when you configure the webserver app.
+		- Configure the webserver-app bundle
+			1. Open webserver-app/apiproxy/policies/SetConfigurationVariables.xml
+			2. Enter your values for appKey, appSecret, environment, and organization, as shown below.
+			Important! You'll need to grab the Consumer ID and Consumer Secret that were returned when you provisioned the webserver-* entities in the previous step. Substitute those values in for the appKey and appSecret.
+			```
+			     <AssignMessage async="false" continueOnError="false" enabled="true" name="SetConfigurationVariables">
+			          <DisplayName>SetConfigurationVariables</DisplayName>
+			          <FaultRules/>
+			          <Properties/>
+			          <AssignVariable>
+			              <Name>appKey</Name>
+			              <Value>Substitute the Consumer key</Value>
+			          </AssignVariable>
+			          <AssignVariable>
+			              <Name>appSecret</Name>
+			              <Value>Substitute the Consumer secret</Value>
+			          </AssignVariable>
+			          <AssignVariable>
+			              <Name>config.environment</Name>
+			              <Value>Substitute your Edge environment (prod or test)</Value>
+			          </AssignVariable>
+			          <AssignVariable>
+			              <Name>config.organization</Name>
+			              <Value>Substitute your organization name on Edge</Value>
+			          </AssignVariable>
+			          <AssignVariable>
+			              <Name>config.domain</Name>
+			              <Value>apigee.net</Value>
+			          </AssignVariable>
+			          <AssignVariable>
+			              <Name>config.protocol</Name>
+			              <Value>https</Value>
+			          </AssignVariable>
+			          <IgnoreUnresolvedVariables>false</IgnoreUnresolvedVariables>
+			      </AssignMessage>
+			```
+			3. Save the file.
+			4. Open webserver-app/apiproxy/policies/HTMLIndex.xml
+			5. Edit the BASEURL, REDIRECT, and CLIENT_ID variables as follows:
+			BASEURL - The base URL for your environment -- use your organization and environment names on Edge. For example: https://myorg-prod.apigee.net
+			REDIRECT - This is the Redirect URI.
+			Note that this URI must exactly match the CallbackUrl element that you added to the webserver-app.xml configuration previously. For example: https://myorg-test.apigee.net/web/callback
+			CLIENT_ID - The "Consumer Key" obtained from a developer app that is registered on Apigee Edge.
+			Note that this key must match the one you configured previously in the webserver app.
+			6. Save the file.
+			7. Deploy webserver-app API proxy.
 
 
 ## COURSE: API Development on Google Cloud's Apigee API Platform
+https://www.coursera.org/learn/api-development-apigee-gcp/home/welcome
 
 ### Module 1 - Getting Started with API Development
 
@@ -1968,56 +2100,222 @@ About client credentials
 ### Module 2 - API Policies and Management
 2.1. API Policies Overview
 2.1.1. Module Overview
-	cover the various out of the box policies in the Apigee API platform, and how to create custom policies.
+	Cover the various out of the box policies in the Apigee API platform, and how to create custom policies.
 2.1.2. Policy Overview
-	Policies are teh fundamental building blocks that make up your API.
+	Policies are the fundamental building blocks that make up your API.
+	What is a Policy?
+		- is a module that implementes a specific, limited management function
+		- by using policies, you can 'program' API behavior without writing any code
+		- designed to let you add common types of management capabilities to an API easily and reliably
+		- can also implement custom login in the form of JavaScript, Python, Java, and XSLT with extension policies
+	Out of the box policies (pre-built policies)
+		- Traffic management policies	Cache policies, Concurrent Rate Limit policy, Quota policy, Reset Quota policy, Spike Arrest policy
+		- Mediation policies			Access Entity policy, Assign Message policy, Extract Variables policy, JSON to XML policy, Key Value Map Operations policy, Raise Fault policy, SOAP Message Validation policy, XML to SOAP policy, XSL Tranform policy
+		- Security policies				Access Control policy, Basic Authentication policy, JSON Threat Protection policy, LDAP policy(On-Prem installation only), OAuth v2.0 policies, OAuth v1.0a policy, Regular Expression Protection policy, SAML Assertion policies, Verify API Key policy, XML Threat Protection policy
+		- Extension policies			Java Callout policy, JavaScript policy, Message Logging policy, Python Script policy, Serice Callout policy, Statistics Collection policy		NOTE: Some are for Cloud Enterprise only
+	Policies enable fine grain controls in the APi proxy
+	Build APIs faster to help...
+		- Traffic Management	manage interactions with API consumers and optimize performance
+			Quota, Spike Arrest, Response Cache, Lookup Cache, Populate Cache, Invalidate Cache, Reset Quota
+		- Mediation		transform, translate and reformat data for easy consumption
+			JSON to XML, XML to JSON, Raise Fault, XSL Transform, SOAP Message Validation, Assign Message, Extract Variables, Access Entity, Key Value Map Operations
+		- Security		secure APIs and protect back-end systems from attack
+			XML Threat Protection, JSON Threat Protection, Regular Expression Protection, OAuth v2.0, Get OAuth v2.0 Info, OAuth v1.0a, Verify API Key, Access Control, Generate SAML Assertion, Validate SAML Assertion
+		- Extension		extend with programming when you need it
+			Java Callout, Python, JavaScript, Service Callout, Statistics Collector, Message Logging
 2.1.3. Traffic Management
+	Some quick walkthrough example scenarios:
+	Spike Arrest
+		- protect target backend against severe traffic spikes and DoS attacks
+		- control requests by second and minute
+		- typically used in "preflow"
+	Quota		Quota, Reset Quota
+		- limit number of requests over a period of time
+		- able to limit for everyone, or configure based on product, developer, etc.
+		- typically used in "preflow"
+		- `Reset Quota` policy to reset it
+	Concurrent Rate Limit
+		- used to limit the number of concurrent connections, throttles inbound connections from Edge to backend services
+		- NOT typically used but is available
+		- attach to both the request and response flows in the Target endpoint
+	Response Cache
+		- cache the whole HTTP response (body, headers, status code, etc)
+		- can improve performance by retrieving response from the cache instead of back end
+		- attach in both the request and response flows
+		- typically only used with GET calls
+	Cache		Lookup Cache, Populate Cache, Invalidate Cache
+		- cache specific pieces of data within the proxy
+		- examples: tokens, service callout responses, data from previous calls, etc.
+		- control the cache by "populate", "lookup", "invalidate"
+
 2.1.4. Practice Quiz
+	1/1	API Policies can NOT be strung together in an API proxy. Only one API policy can exist in an API proxy?			FALSE
+
 2.2. Lab: Traffic Management
 2.2.1. Spike Arrest
+	TODO... lab
+
 2.2.2. Quota
+	TODO... lab
+	References
+		Spike Arrest Policy - http://docs.apigee.com/api-services/reference/spike-arrest-policy
+		Rate Limiting - http://docs.apigee.com/api-services/content/rate-limiting
+		Quota Policy Reference - http://docs.apigee.com/api-services/reference/quota-policy
+		Community post on setting up dynamic quotas https://community.apigee.com/questions/1488/how-do-the-quota-settings-on-an-api-product-intera.html
+		Comparing Rate Limiting Policies - http://docs.apigee.com/api-services/content/comparing-quota-spike-arrest-and-concurrent-rate-limit-policies
+
 2.3. API Policies Overview (continued)
 2.3.1. Mediation
+	Mediation covers the group of policies that interact with, and have the ability to transform the request in response as your proxy executes.
+	In this module, we'll review the Apigee Edge policies specific to mediation.
+	JSON to XML, XML to JSON
+		TODO...
+	XSL Transform
+	SOAP Message Validation
+	Assign Message
+	Extract Variables
+	Extract Variables + Assign Message
+	Raise Fault
+	Call All Flow Example
+	Access Entity
+	Key Value Map (KVM) Operations
+	
 2.3.2. API Security
+	Cover all the policies that pertain to security within the Apigee Edge Management Platform.
+	Basic Authentication
+	XML, JSON Regex, Threat Protection
+	Verify API Key Policy
+	OAuth v1.0a
+	OAuth v2
+	SAML		Generate SAML Assertion, Validation SAML Assertion
+	Access Control
+	
 2.4. Lab: Mediation and Security
 2.4.1. Mediation
+	TODO...
 2.4.2. Security
+	TODO...
+	References
+		Assign Message Policy - https://docs.apigee.com/api-services/reference/assign-message-policy
+		Basic Authentication Policy - https://docs.apigee.com/api-services/reference/basic-authentication-policy
+
 2.5. Quiz - API Policies and Management
+	1/4	In Apigee Edge, if an out of the box policy is not provided, you can create your own custom policy?		=> TRUE
+	2/4	The Spike Arrest policy helps protect against a severe spike in traffic and denial of service attacks. As such, where should this policy typically be located?		PreFlow/PostFlow/ConditionalFlow/PostClientFlow	=> PreFlow
+	3/4	Mediation refers to which of the following?			=> The ability to transform the request and response. NOT: The ability to secure your API through authentication; The ability to manage traffic coming into your API; The ability to capture analytics on the API performance
+	4/4	As a recommendation, OAuth v2 is preferred over OAuth v1.0a				=> TRUE
 ### Module 3 - Target Servers and API Products
 3.1. Target Servers
+	Key Concepts
+	- Compare the various types of API product strategies
+	- Apply Named Target Servers to your API proxies
+	- Build in authentication to a target server
 3.1.1. Module Overview
+	- discover how to secure and name Target Servers in Apigee Edge
+	- provide an overview of the commonly used methods to productize APIs
+	- API products is an important topic covered in the Fundamentals course so we'll be showing you how to bundle the API proxies you have created into "products"
+	- Hands on exercises are included to walk you through the process.
 3.1.2. Dealing with Secure Target Server
+	Building Target Authentication
+	- Hard Code
+	- Build Time Replacement
+	- Using Node.js Access Vault		NOTE: Only Node.js
+	- Using Key Value Map
+	TODO...
 3.1.3. Setting up a Named Target Server
+	Exiting Target URL
+	TODO...
+	Target Server with SSL
+	Multiple Target Servers
+	Load Balancer
+	- RoundRobin
+	- Weighted
+	- LeastConnection
+	Health Monitor - HTTPMonitor
+	Health Monitor - TCPMonitor
 3.2. Lab: KVM and Target Server Creation
 3.2.1. Secure Target Server
+	Problem: hard-coding the auth credentials in Assign Message policy might have to be changed when promoted to other environments
+	Solution: By using encrypted Key Value Maps
+	TODO...
 3.2.2. Setting Up Named Target Server
+	Admin > Environments
+	TODO...
+
 3.3. API Products
 3.3.1. Product Design
+	Product Overview
+	TODO...
+	Product Strategies
+	- API Proxy Model		1-to-1	api proxy to product
+	- Business Model		business unit. multiple API resources to product
+	- Ownership Model		dev team unit. multiple API resources to product
+	- Service Plan Model	by service level e.g. Bronze, Gold plan grouping API resources to product
 3.4. Lab: Product, Developer, and Developer Apps
 3.4.1. Product, Developer, and Developer App
+	Publish > +API Product
+	Publish > Developers,  +Developer
+	Publish > Apps
+	Verify API Key policy
+	TODO...
+	
 3.5. Quiz - Target Servers and API Products
+	TODO...
 ### Module 4 - Error Handling and Logging
 4.1. Error Handling and Logging
 4.1.1. Module Overview
+	TODO...
 4.1.2. Fault Rules and Error Responses
+	Terminology
+	- Raise Fault policy
+	- Edge raises an error during policy execution
+	- Fault Rule = Fault Handler ()
+	TODO...
+	Fault handling
+	Rewrite Backend Error Response
+	Raise Fault policy
+	
 4.1.3. Logging
+	Edge Logging Services
+	Message Logging Policy		that is an asynchronous flow in the ProxyEndpoint in the PostClientFlow. If it include the message logging policy here, then Apigee will log the message after the response is sent to the client.
+	TODO...
 4.2. Lab: Fault Rules Error Responses and Logging
 4.2.1. Fault Rules Error Responses
+	TODO...
 4.2.2. Logging to External Service Provider - Loggly
+	TODO...
 4.3. Quiz - Error Handling and Logging
+	TODO...
 
 ### Module 5 - Shared Flows, Flow Hooks, and Extensions
 5.1. Shared Flows and Flow Hooks, Flow Hooks, and Extensions
 5.1.1. Module Overview
+	TODO...
 5.1.2. Shared Flows and Flow Hooks
+	What is a Shared Flow?
+	TODO...
+	Flow Hooks
+	- Pre-proxy Flow Hook
+	- Pre-target Flow Hook
+	- Post-target Flow Hook
+	- Post-poxy Flow Hook
 5.1.3. Extentions
+	JavaScript Callout
+	TODO...
+	Flow Callout		Calls out to a shared flow
+	Statistics Collector		
 5.2. Lab: Shared Flows
 5.2.1. Shared Flows and Flow Hooks
+	TODO...
 5.3. Quiz - Shared Flows and Flow Hooks
+	TODO...
 5.4. Optional: Optional Labs
 5.4.1. Extensions - Java
+	TODO...
 5.4.2. Extensions - Python
+	TODO...
 5.4.3. Honors Lesson Completion
+	TODO...
 ### Module 6 - Mediation, Caching, and Node.js Integration
 6.1. Service Callout and Advance Mediation
 6.1.1. Moduule Overview
@@ -2040,4 +2338,22 @@ About client credentials
 6.6.1. Node.js Integration with Edge
 6.6.2. Deployment Tools
 6.7. Quiz - Advance Development Topics
+
+
+## COURSE: Install and Manage Google Cloud's Apigee API Platform
+TODO...
+
+## COURSE: On Premises Management, Security, and Upgrade with Google Cloud's Apigee API Platform
+## COURSE: On Premises Installation and Fundamentals with Google Cloud's Apigee API Platform
+## COURSE: On Premises Capacity Upgrade and Monitoring with Google Cloud's Apigee API Platform
+
+## COURSE: Developing APIs with Google Cloud's Apigee API Platform Specialization
+https://www.coursera.org/specializations/apigee-api-gcp
+TODO...
+
+
+
+
+
+
 
