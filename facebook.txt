@@ -1,0 +1,132 @@
+
+
+https://developers.facebook.com/apps/
+
+http://developers.facebook.com/docs/reference/api/post/
+http://curl.haxx.se/docs/httpscripting.html
+https://github.com/lukapusic/fb-bot-bash
+
+
+
+curl -F 'access_token=$accessToken' \
+     -F 'message=Check out this funny article' \
+     -F 'link=http://www.example.com/article.html' \
+     https://graph.facebook.com/$facebookid/feed
+
+$attachment =  array(
+'access_token' => $token,
+'message' => $msg,
+'name' => $title,
+'link' => $uri,
+'description' => $desc,
+'picture'=>$pic,
+'actions' => json_encode(array('name' => $action_name,'link' => $action_link))
+);
+
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL,'https://graph.facebook.com/fbnameorid/feed');
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, $attachment);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);  //to suppress the curl output 
+$result = curl_exec($ch);
+curl_close ($ch);
+
+
+
+$graph_url= "https://graph.facebook.com/me/photos";
+  $postData = "url=" . urlencode($photo_url)
+  . "&message=" . urlencode('')
+  . "&access_token=" .$access_token;
+
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $graph_url);
+        curl_setopt($ch, CURLOPT_HEADER, 0);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+
+        $output = curl_exec($ch);
+
+        curl_close($ch);
+
+
+
+
+#!/bin/bash
+#
+# Facebook command line status update bot v1.0
+# Author: Luka Pusic <pusic93@gmail.com>
+# http://360percents.com/posts/bash-script-to-update-facebook-status-linux-mac-os-x/
+#
+email="email@domain.com"
+pass="your_password"
+status="yay :)" #must be less than 420 chars
+ 
+touch "cookie.txt" #create a temp. cookie file
+loginpage=`curl -s -c ./cookie.txt -A "Mozilla/5.0" "http://m.facebook.com"` #initial cookies
+ 
+#LOGIN PARAMETERS
+form_action=`echo "$loginpage" | tr '"' "\n" | grep "https://www.facebook.com/login.php"`
+form_data=`echo "$loginpage" | sed -e 's/.*<form//' | sed -e 's/form>.*//' | tr '/>' "\n" | grep 'input ' | grep -v "email\|pass"`
+ 
+#FUNCTION PARSES FORM DATA LIKE HIDDEN INPUTS
+function parse_form() {
+    form_data="$1"
+    params=""
+        for (( i=1; i <= `echo "$form_data" | wc -l` ; i++ ))
+            do
+                name=`echo "$form_data" | sed -n "$i"p | tr ' ' "\n" | grep 'name' | cut -d '"' -f 2`
+                value=`echo "$form_data" | sed -n "$i"p | tr ' ' "\n" | grep 'value' | cut -d '"' -f 2`
+                params="$params$name=$value&"
+            done
+         echo "$params"
+}
+ 
+#LOGIN
+params="email=$email&pass=$pass&"`parse_form "$form_data"`
+logged_in=`curl -s -b ./cookie.txt -c ./cookie.txt -A "Mozilla/5.0" -d "$params" -L "$form_action"`
+homepage=`curl -s -b ./cookie.txt -c ./cookie.txt -A "Mozilla/5.0" -L "http://m.facebook.com/profile.php"`
+ 
+#UPDATE STATUS
+status_form=`echo "$homepage" | sed -e 's/.*<form id="composer_form//' | sed -e 's/textarea>.*//' | tr '/>' "\n" | grep 'input ' | grep 'name' | grep -v 'query' | grep -v 'status'`
+status_action=`echo "$homepage" | tr '"' "\n" | grep "/a/home.php?refid="`
+status_params=`parse_form "$status_form"`"status=$status&update=Share"
+update=`curl -s -b ./cookie.txt -c ./cookie.txt -A "Mozilla/5.0" -d "$status_params" -L "http://m.facebook.com$status_action"`
+#$callback=`echo "$update" | grep "$status"` #just a primitive example of success checking
+ 
+#LOGOUT
+logout_link=`echo "$update" | tr '"' "\n" | grep "/logout.php?"`
+logout=`curl -s -b ./cookie.txt -c ./cookie.txt -A "Mozilla/5.0" -L "http://m.facebook.com$logout_link"`
+ 
+rm "cookie.txt" #remove cookie file
+
+
+
+
+--- GET:
+with JSON:
+curl -i -H "Accept: application/json" -H "Content-Type: application/json" -X GET http://hostname/resource
+with XML:
+curl -H "Accept: application/xml" -H "Content-Type: application/xml" -X GET http://hostname/resource
+--- POST:
+For posting data:
+curl --data "param1=value1&param2=value2" http://hostname/resource
+For file upload:
+curl --form "fileupload=@filename.txt" http://hostname/resource
+RESTful HTTP Post:
+curl -X POST -d @filename http://hostname/resource
+For logging into a site (auth):
+curl -d "username=admin&password=admin&submit=Login" --dump-header headers http://localhost/Login
+curl -L -b headers http://localhost/
+
+GET approach with JSON result:
+curl -i -H "Accept: application/json" http://someHostName/someEndpoint | grep }| python -mjson.tool 
+POST approach with JSON result:
+curl -X POST  -H "Accept: Application/json" -H "Content-Type: application/json" http://someHostName/someEndpoint -d '{"id":"IDVALUE","name":"Mike"}' | grep }| python -mjson.tool
+
+
+

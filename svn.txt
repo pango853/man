@@ -1,0 +1,94 @@
+
+
+###. Setup (CentOS)
+# yum install subversion
+# yum install mod_dav_svn
+# yum install subversion-python
+
+$ svnadmin create C:\repo\proj01
+$ svnserve --daemon --root C:\repo
+
+$ svn checkout svn://127.0.0.1/proj01
+
+Set password
+$ vim svnserve.conf
+	[general]
+	anon-access = none
+	auth-access = write
+	password-db = passwd
+	realm = Koji Repository
+
+svn co --username koji svn://localhost/mysvn_repo
+
+svn mkdir file://localhost/c:/.../proj01/trunk -m "trunk created"
+svn mkdir file://localhost/c:/.../proj01/tags-m "tags created"
+svn mkdir file://localhost/c:/.../proj01/branches -m "branches created"
+svn import e:\hogehoge file://localhost/c:/.../proj01/trunk -m "Import ...xxx"
+
+
+###. Apache
+... Undergoing ...
+
+###. Trac
+
+Prerequiste for Trac installation are
+
+1.    Python version >= 2.3
+2.    Setuptools version >= 0.6
+3.    Genshi version >= 0.5
+4.    SQLite version 3.3.4
+5.    Webserver mostly  apache used
+
+$ sudo pip install Genshi Babel docutils
+$ sudo pip install http://svn.edgewall.org/repos/trac/trunk
+OR
+Download tar.gz file and 
+$ tar -xzvf   Trac-0.11.2.tar.gz
+$ cd Trac-0.11.2
+Install Python setuptools
+python ./ez.setup.py
+python ./setup.py install
+
+
+
+For plugins : http://trac-hacks.org/ 
+Account:
+$ sudo pip install http://trac-hacks.org/svn/accountmanagerplugin/trunk
+Wiki:
+$ sudo pip install pisa reportlab html5lib pyPDF PIL Pygments
+$ sudo pip install http://trac-hacks.org/svn/tracwikiprintplugin/0.11
+
+$ su -
+# cd /var/www/trac
+# trac-admin project_name initenv
+
+Now initialize the tracd deamon
+# tracd --port 8000 /path/to/project_dir/
+
+
+# htpasswd -c project_name/.htpasswd admin_username
+# htpasswd project_name/.htpasswd username1
+# trac-admin project_name permission add admin_username TRAC_ADMIN
+
+# vim trac.ini
+
+# chmod 700 myproject
+# chmod -R go-rwx myproject
+# chown -R daemon.daemon myproject
+
+To startd the tracd deamon
+# tracd -p 8080 --basic-auth="projectdirname,/fullpath/environmentname/.htpasswd,realmname" /fullpath/environmentname
+# tracd -p 8080 --basic-auth="testenv,/srv/tracenv/testenv/.htpasswd,My Test Env" /srv/tracenv/testenv
+
+
+To work with Apache, use mod_python or mod_wsgi (faster). Next time we can also try mod_dav_svn.
+
+###. Mylyn
+XML-PRC plugin will be needed???
+
+
+###. Backup & Restore
+svnadmin dump c:\svn\hoge > c:\temp\hoge.dump
+svnadmin create c:\svn\hoge2
+svnadmin load c:\svn\hoge2 < c:\temp\hoge.dump
+

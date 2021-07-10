@@ -1,0 +1,20 @@
+Using puttygen in unix.
+Partof: Putty for unix/macox
+
+1. Download source file from putty homepage.
+
+2. Extract(putty-0.60) 
+$ cd putty-0.60/unix
+$ ./configure
+
+3. gcc is required so you might need to install xcode. xcode 3.0 is free and available on Apple Developer. Download it(~4GB) and install.
+
+4. Again
+$ ./configure
+$ make
+
+5. Now the binary files are ready.
+$ ./puttygen -l puttykey.ppk  -O private-openssh -o sshkey_filename
+
+Done.
+

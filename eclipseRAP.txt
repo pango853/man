@@ -1,0 +1,90 @@
+
+
+###. RCP Studying
+‘2014/07/13	p.23 Debugging with step filters
+‘2014/07/15	p.58 Not yet finished
+‘2014/07/19	p.124 Job
+
+###. SWTBot
+- SWTWorkspaceBot
+- SWTWorkbenchBot
+
+
+###. TODO
+- Javadoc & Doxygen
+
+
+
+###. ExtenxionPoint NullPointException
+		IExtensionPoint point = registry.getExtensionPoint("com.clustercontrol.menuPlugin");
+		for(IExtension extension: point.getExtensions()){
+
+###. Developing
+- With "Build Automatically" enabled, souces can be recompile automatically in debugging mode. No need to re-run.
+- Modification of plugin.xml (e.g. adding new extensions) won't be auto-built, but it is possible to start and stop the plug-in through the command-line OSGI console.
+  osgi> refresh -all
+- OSGi Console
+  osgi> ss
+  osgi> start ??
+  osgi> stop ??
+  osgi> pt -v org.eclipse.ui.contexts
+
+
+
+
+
+new Thread("TickTock") {         public void run() {           while (!ClockWidget.this.isDisposed()) {             ClockWidget.this.getDisplay().asyncExec(              new Runnable() {               public void run() {                 if (!ClockWidget.this.isDisposed())                   ClockWidget.this.redraw();} });             try {               Thread.sleep(1000);             } catch (InterruptedException e) {               return;
+} }} }.start();
+
+
+if (shell != null && !shell.isDisposed()) {      Display.getDefault().asyncExec(new Runnable() {        public void run() {          if (shell != null && !shell.isDisposed())            shell.dispose();        }}); }
+
+
+
+- -Dorg.eclipse.rap.workbenchAutostart=false 
+
+
+
+- Getting “Plug-in Spy” and “Live Editor” to work in rcp
+
+
+ org.eclipse.swtbot.eclipse.finder.widgets;
+
+
+
+
+http://wiki.eclipse.org/Riena/GettingStarted
+
+page.closeAllPerspectives()
+showPerspective()
+
+
+
+
+http://www.programcreek.com/2011/08/eclipse-rcp-window-perspective-view/
+http://blog.trixi.cz/2011/05/rcp-custom-perspective-switcher/
+http://stackoverflow.com/questions/1337850/eclipse-perspective-switcher-as-in-google-chrome-or-riena
+
+https://bugs.eclipse.org/bugs/describecomponents.cgi?product=RAP
+
+        // Fixed bug 84603: [RCP] [PerspectiveBar] New API or pref to set default perspective bar size
+
+http://wiki.eclipse.org/RAP/Build_Process
+http://wiki.eclipse.org/RAP/LoadTesting
+http://bugs.eclipse.org/bugs/buglist.cgi?component=Demo&product=RAP&resolution=---
+
+http://stackoverflow.com/questions/21238665/configure-rap-without-eclipse
+
+
+IToolBarManager toolBarX = new ToolBarManager();
+ toolBarX.add(myAction);
+ ...
+toolBar.add(new ToolBarContributionItem(toolBarX,
+                    IWorkbenchActionConstants.TOOLBAR_FILE));
+http://esalagea.wordpress.com/2011/08/17/eclipse-rcp-%E2%80%93-customize-the-toolbar-and-menus-for-a-given-perspective-contributions-using-plugin-extensions-xml/
+
+
+// Get the Display default icons
+label.setImage(Display.getDefault().getSystemImage(SWT.ICON_ERROR));
+
+

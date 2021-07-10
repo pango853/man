@@ -1,0 +1,5 @@
+
+
+$ sudo sysctl -w net.inet.tcp.delayed_ack=0
+
+

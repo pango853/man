@@ -1,0 +1,55 @@
+
+
+
+###. Debian
+
+
+newrole -r role_r -t domain_t
+
+$ ps axZ | grep vstfpd
+	system_u:system_r:ftpd_t:s0   2094 ?    Ss  0:00 /usr/sbin/vsftpd
+$ id -Z
+	unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+$ ls -Z test /usr/bin/ssh
+	unconfined_u:object_r:user_home_t:s0 test
+	     system_u:object_r:ssh_exec_t:s0 /usr/bin/ssh
+
+$ sudo aptitude install selinux-basics selinux-policy-default
+	Optional: selinux-utils, setools, polgen, polgen-doc, slat, selinux-policy-doc
+
+# semodule -i /usr/share/selinux/default/aide.pp
+# semodule -l
+	aide    1.4.0
+	apache  1.10.0
+	apm     1.7.0
+	...
+# semodule -r aide
+# semodule -l
+	apache  1.10.0
+	apm     1.7.0
+	...
+# semanage login -a -s user_u rhertzog
+# semanage login -l
+	Login Name                SELinux User              MLS/MCS Range
+	__default__               unconfined_u              s0-s0:c0.c1023
+	rhertzog                  user_u                    None
+	root                      unconfined_u              s0-s0:c0.c1023
+	system_u                  system_u                  s0-s0:c0.c1023
+# semanage login -d rhertzog
+
+# semanage user -a -R 'staff_r user_r' -P staff test_u
+# semanage user -l
+	                Labeling   MLS/       MLS/
+	SELinux User    Prefix     MCS Level  MCS Range        SELinux Roles
+	
+	root            sysadm     s0         s0-s0:c0.c1023   staff_r sysadm_r system_r
+	staff_u         staff      s0         s0-s0:c0.c1023   staff_r sysadm_r
+	sysadm_u        sysadm     s0         s0-s0:c0.c1023   sysadm_r
+	system_u        user       s0         s0-s0:c0.c1023   system_r
+	test_u          staff      s0         s0               staff_r user_r
+	unconfined_u    unconfined s0         s0-s0:c0.c1023   system_r unconfined_r
+	user_u          user       s0         s0               user_r
+# semanage user -d test_u
+
+
+

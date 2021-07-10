@@ -1,0 +1,26 @@
+
+
+### Installation
+
+#. Install Debian 7
+
+#. Update packages
+
+$ su
+# aptitude update
+# aptitude install sudo
+# visudo
+
+download package updates
+$ sudo apt-get update
+
+install latest packages
+$ sudo apt-get upgrade
+
+$ sudo aptitude install net-tools
+$ sudo apt-get install build-essential linux-headers-`uname -r`
+
+
+#. Confirmation
+$ dpkg -L net-tools
+

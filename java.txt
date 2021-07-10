@@ -1,0 +1,8 @@
+
+
+
+$ /usr/lib/jvm/java-8-oracle/bin/java -XX:+PrintFlagsFinal -version | grep 'MetaspaceSize'
+$ /usr/lib/jvm/java-7-oracle/bin/java -XX:+PrintFlagsFinal -version | grep Perm
+
+
+

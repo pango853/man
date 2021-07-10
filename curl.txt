@@ -1,0 +1,29 @@
+
+
+
+###.
+
+curl --cookie "name=Daniel" http://www.example.com
+
+curl --dump-header headers_and_cookies.txt http://www.example.com
+curl -s -D - "www.abc.com" -o /dev/null # dash means STDOUT here
+curl --cookie stored_cookies.txt http://www.example.com
+curl --cookie nada --location http://www.example.com
+curl --cookie cookies.txt --cookie-jar newcookies.txt  http://www.example.com
+
+curl --data "<xml>" --header "Content-Type: text/xml"  --request PROPFIND url.com
+curl --header "Host:" http://www.example.com
+curl --header "Destination: http://nowhere" http://example.com
+curl -X POST http://example.org/
+
+--trace-ascii
+
+CURLOPT_RETURNTRANSFER
+CURLOPT_FOLLOWLOCATION
+CURLOPT_SSL_VERIFYPEER
+CURLOPT_SSL_VERIFYHOST
+CURLOPT_POST
+CURLOPT_POSTFIELDS
+
+
+
