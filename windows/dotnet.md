@@ -10,6 +10,24 @@ dnvm list
 
 # Tutorials
 
+## Hello World in 10 minutes
+REF: https://dotnet.microsoft.com/learn/dotnet/hello-world-tutorial/intro
+REF: https://dotnet.microsoft.com/learn/dotnet/in-browser-tutorial/1
+
+
+
+https://zetcode.com/articles/aspnetcore/
+https://www.tutorialsteacher.com/core/net-core-command-line-interface
+https://docs.microsoft.com/en-us/dotnet/csharp/tutorials/intro-to-csharp/numbers-in-csharp
+https://docs.microsoft.com/en-us/dotnet/api/system.datetime.now?view=net-5.0#System_DateTime_Now
+https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/tokens/interpolated
+https://docs.microsoft.com/en-us/learn/paths/csharp-first-steps/
+https://docs.microsoft.com/en-us/aspnet/core/tutorials/razor-pages/razor-pages-start?view=aspnetcore-5.0&tabs=visual-studio
+https://dotnet.microsoft.com/learn/ml-dotnet/get-started-tutorial/install
+https://docs.microsoft.com/en-us/dotnet/core/tutorials/libraries
+
+
+
 ## Build a dotnet app
 
 **dotnet**
@@ -99,6 +117,31 @@ N2 CMS
 nopCommerce	https://github.com/nopSolutions/nopCommerce
 SimplCommerce	https://github.com/simplcommerce/SimplCommerce
 grandnode	https://github.com/grandnode/grandnode
+
+
+# Commands
+> dotnet new console -o HelloWorld
+> dotnet run --configuration Release
+> dotnet publish --configuration Release
+> dotnet HelloWorld.dll
+
+> dotnet new webApp -o myWebApp --no-https
+> dotnet watch run
+
+# Create a .NET class library
+> dotnet new sln
+> dotnet new classlib -o Lib001
+> dotnet sln add Lib001/Lib001.csproj
+> dotnet new console -o App001
+> dotnet sln add App001/App001.csproj
+> dotnet add App001/App001.csproj reference Lib001/Lib001.csproj
+> dotnet run --project App001/App001.csproj
+
+
+# Dict
+- interpolated strings - $"This is {var}"
+- .NET run-time configuration settings - *.runtimeconfig.json
+- debug symbols file - *.pdb
 
 
 # TODO

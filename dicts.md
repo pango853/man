@@ -45,6 +45,25 @@
 - perusal 	enclosed invoice for your perusal
 - Brick and mortar (also bricks and mortar or B&M)	實體店, brick-and-mortar business 実際の販売店舗を持つ
 
+- trilogies	
+- prequel	
+- archaeological dig into
+- reminiscent
+substantially
+seductively
+exposition
+
+
+- tender award
+- nimble and agile
+
+- pedestal
+
+- GLC
+- conglomerate
+- oligopoly
+
+
 
 
 - DX						
@@ -188,3 +207,6 @@ FSI		Financial Services Industry						corporate
 # Phrases
 - The containerization of applications has become widely popular in recent years as microservices and cloud computing have **likewise exploded in popularity**.
 - **Increasing numbers of** companies are investing in container technology.
+
+
+

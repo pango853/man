@@ -4,7 +4,7 @@ HackMD			2019/04	-	-	https://hackmd.io/	Collaborative markdown notes
 STACKALYTICS	2019/04	-	-	https://www.stackalytics.com/
 Slido			2019/04	-	-	https://www.sli.do/
 GitBook　　 	2019/04	?	-	https://www.gitbook.com/	Document Everything!
-Mentimeter　	2019/05	?	-	https://ww.menti.com	Join a presentation - Mentimeter
+Mentimeter　	2019/05	?	-	https://www.menti.com	Join a presentation - Mentimeter
 Gengo       	2019/05 ?	-	https://gengo.com/order/	Gengo provides fast, affordable and quality translations by native speakers located worldwide.
 				2019/06	?	-	https://icoconvert.com/
 				2019/06	?	-	https://github.com/netdata/netdata
@@ -33,7 +33,36 @@ Spanning	Cloud-to-Cloud SaaS Backup: G Suite, Office 365 and Salesforce
 Cloudlock	CASB - Cloud Access Security Broker | Cisco Umbrella Cloudlock
 Appspace	A Software Platform for the Modern Workplace
 
+JSON Server	https://github.com/typicode/json-server	For API Front-end testing
+
 Rundeck	OSS ジョブスケジューラ
+
+Proxmox - powerful open-source server solutions
+
+iconscout			from icons
+shutterstock.com	from images
+
+https://www.menti.com/
+
+https://www.flaticon.com/
+https://www.freepik.com/
+https://www.iconfinder.com/
+https://iconstore.co/
+https://www.smashingmagazine.com/		Search for "coffee freebie"
+https://findicons.com/
+https://iconarchive.com/
+
+
+
+Monkey Learn	SaaS Text Analysis with Machine Learning	https://monkeylearn.com/blog/customer-complaint-classification/
+QLess	Top Rated Queue Management System	https://www.qless.com/
+
 
 # ほしいもの
 - Slideのにこにこコメント
+
+
+# TODO
+- FreeIPA
+- modprobe bonding; nmcli c add ...; man 5 nmcli-examples; // IPv6 and Duplicate Address Detectiod (DAD)
+

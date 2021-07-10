@@ -80,6 +80,20 @@ git archive --format=zip HEAD -o patch.zip __PATH__/__FILE__
 git log --pretty=format:"%h	%an	%ad	%ar	%cn	%cd	%cr	%s" --since 2019-10-01 origin/japan#rq11         >> test.log;
 ```
 
+## How to remove file from Git history
+
+git filter-branch --index-filter "git rm -rf --cached --ignore-unmatch path_to_file" HEAD
+git filter-branch --tree-filter 'rm -f <path_to_file>' HEAD
+
+git filter-branch --force --index-filter 'git rm --cached --ignore-unmatch PATH-TO-YOUR-FILE-WITH-SENSITIVE-DATA' --prune-empty --tag-name-filter cat -- --all
+git push origin --force --all
+
+## Merge conflict
+
+git checkout --theirs PATH
+
+git merge --strategy-option theirs
+
 
 # TODO
 

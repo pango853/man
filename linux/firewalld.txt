@@ -44,3 +44,30 @@ ssh ポート番号変更
 
 cp /usr/lib/firewalld/services/ssh.xml /etc/firewalld/services/ssh.xml
 vi /etc/firewalld/services/ssh.xml
+
+
+# Allow SNMP ports in FirewallD CentOS 7
+
+firewall-cmd --get-active-zones
+firewall-cmd --list-ports
+firewall-cmd --zone=public --add-port=161/udp --permanent
+firewall-cmd --reload
+firewall-cmd --list-ports
+
+OR
+
+
+```/etc/firewalld/services/snmp.xml
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>SNMP</short>
+  <description>SNMP protocol</description>
+  <port protocol="udp" port="161"/>
+</service>
+```
+
+firewall-cmd --reload
+firewall-cmd --zone=public --add-service snmp --permanent
+firewall-cmd --reload
+
+

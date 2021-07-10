@@ -165,6 +165,23 @@ http://localhost:9090/targets
 
 ## graph
 
+# PromQL
+topk(5,sum(container_memory_usage_bytes{kubernetes_container_name=~".+", kubernetes_namespace=~".+"}) by (kubernetes_namespace,kubernetes_container_name))
+topk(5,sum(irate(container_cpu_usage_seconds_total{kubernetes_container_name=~".+", kubernetes_namespace=~".+"}[20s])) by (kubernetes_namespace,kubernetes_container_name))
+-> Set as instant
+
+100-topk(1,node_filesystem_free{device=~":/.*"}*100/node_filesystem_size{device=~":/.*"})
+
+:/var/lib/docker/nfs           147G   15G  125G  11% /var/lib/docker/volumes/volume-nfs/_data
+{component="node",device=":/var/lib/docker/nfs",fstype="nfs",hostname="xxx",instance="xxx",instance_ip="xxx",job="job:monitor",mountpoint="/var/lib/docker/volumes/volume-nfs/_data",node_type="controller",system="QHC-CORE"}	9.978290691634598
+
+reserved  = fsu_blocksize * (fsu_bfree - fsu_bavail)
+
+100-topk(1,node_filesystem_avail{device=~":/.*"}*100/(node_filesystem_size{device=~":/.*"}-(node_filesystem_free{device=~":/.*"}-node_filesystem_avail{device=~":/.*"})))
+{component="node",device=":/var/lib/docker/nfs",fstype="nfs",hostname="node4",instance="xxxx",instance_ip="xxxx",job="job:monitor",mountpoint="/var/lib/docker/volumes/volume-nfs/_data",node_type="controller",system="QHC-CORE"}	10.51730188811679
+
+
+
 # Usage
 
 docker pull prom/prometheus-cli

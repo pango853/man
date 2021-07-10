@@ -431,3 +431,14 @@ Access http://NODE-IP:31332/
 > kubectl create secret generic my-secret --from-literal=foo=bar -o yaml --dry-run > my-secret.yaml
 > kubectl edit
 > kubectl explain po.spec --recursive
+
+
+# Tutorials
+## 
+https://www.katacoda.com/courses/kubernetes/playground
+
+https://blog.vpantry.net/2020/02/harbor-helm-install/
+https://tech.griphone.co.jp/2020/04/08/helm-grafana-loki/
+
+https://jfrog.co.jp/blog/helm-charts-best-practices/
+https://qiita.com/kimurayut/items/df6cb2c418bcfba66f59

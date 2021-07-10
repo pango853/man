@@ -100,3 +100,43 @@ https://docs.microsoft.com/en-us/azure/virtual-machines/windows/quotas
 > Get-AzVMUsage -Location "East US"
 
 
+
+
+# Deployment
+
+```azuredeploy.json
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "resources": []
+}
+```
+
+az deployment group create \
+  --name blanktemplate \
+  --resource-group myResourceGroup \
+  --template-file azuredeploy.json
+
+az deployment group create \
+  --name blanktemplate \
+  --resource-group myResourceGroup \
+  --template-file azuredeploy.json \
+  --parameters @params.json \
+  --no-prompt --no-wait
+
+
+az deployment group create --resource-group "chan-bom-demo" \
+ --verbose --debug \
+ --template-file "/tmp/ansible_file/azuredeploy-hdxx96.json" \
+ --parameters @myparameters.json
+
+az deployment group create --resource-group "chan-bom-demo" \
+ --verbose --debug \
+ --template-file "/tmp/ansible_file/azuredeploy-hdxx96.json" \
+ --parameters \
+
+
+
+# List VMs and their images
+az vm list --query '[].{ Name:name, offer:storageProfile.imageReference.offer, publisher:storageProfile.imageReference.publisher, sku:storageProfile.imageReference.sku, version:storageProfile.imageReference.version}' -o table
+

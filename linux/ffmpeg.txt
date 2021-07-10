@@ -1,0 +1,20 @@
+
+
+# Cutting the videos based on start and end time
+	ffmpeg -i movie.mp4 -ss 00:00:03 -t 00:00:08 -async 1 cut.mp4
+	ffmpeg -ss 00:01:00 -i input.mp4 -to 00:02:00 -c copy output.mp4
+	ffmpeg -i movie.mp4 -ss 00:00:03 -t 00:00:08 -async 1 -c copy cut.mp4 
+
+Drop everything except from second 3 to second 8
+	ffmpeg -i movie.mp4 -vf trim=3:8 cut.mp4
+
+# Concat MP4 files
+```
+:: Create File List
+echo file file1.mp4 >  mylist.txt 
+echo file file2.mp4 >> mylist.txt
+echo file file3.mp4 >> mylist.txt
+
+:: Concatenate Files
+ffmpeg -f concat -i mylist.txt -c copy output.mp4
+```

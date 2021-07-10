@@ -1,0 +1,5 @@
+
+ビッグデータ処理データベースの全体像と使い分け:
+	https://www.slideshare.net/recruitcojp/ss-64189311
+
+

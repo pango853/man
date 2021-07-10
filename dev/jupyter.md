@@ -75,3 +75,16 @@ gl = gitlab.Gitlab.from_config('somewhere', ['/tmp/gl.cfg'])
 
 https://python-gitlab.readthedocs.io/en/stable/api-usage.html
 https://python-gitlab.readthedocs.io/en/stable/gl_objects/mrs.html
+
+
+# Online Jupyter Notebooks
+- Google Colab
+- Deep notes
+- Kaggle Kernels
+- Azure Notebooks -> GitHub Codespaces beta
+- CoCalc
+
+Binder
+Datalore
+
+

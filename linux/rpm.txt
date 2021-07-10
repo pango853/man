@@ -25,3 +25,9 @@ history sync
 
 
 yum clean all でも解消しない場合は試してみるのもいいのかもしれません。
+
+
+# View Installation / Uninstallation Script Inside The RPM File
+
+	$ rpm -qp --scripts foo.rpm
+	$ rpm -q --scripts httpd

@@ -84,3 +84,19 @@ block:
   ...
   roles:
     -role: nginx
+
+# Tutorial2
+
+ansible all --list-hosts
+ansible all --host ansible_ambari_server
+
+ansible-playbook site.yml -i staging -i production
+ansible-playbook site.yml
+
+ansible-playbook -i inventories/production playbook.yml
+
+ansible-playbook -i inventories/l site.yml
+
+ansible all -i hosts --list-hosts
+ansible all -i hosts/01_user_groups --list-hosts
+

@@ -1,4 +1,23 @@
-2012-01-31
+
+
+# Tutorial
+gpg --gen-key
+gpg --list-keys
+gpg --list-secret-keys
+
+echo "This is a dummy file - `date`" > test.txt
+gpg --output test.gpg --encrypt --recipient user1@example.com test.txt
+
+gpg --output test.decrypt.txt --decrypt test.gpg
+
+echo mypassphrase | gpg --passphrase-fd 0 --output test2.gpg --encrypt --recipient user1@example.com test.txt
+echo mypassphrase | gpg --passphrase-fd 0 --output test2.txt --decrypt test2.gpg
+
+
+
+
+TODO: https://sanctum.geek.nz/arabesque/gnu-linux-crypto-gnupg-usage/
+
 
   
 

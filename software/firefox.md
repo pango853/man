@@ -7,15 +7,29 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Command_Line_Options#-private
 
 
 # Tuning
-Browse to about:config in Firefox
-Click on "I'll be carefull, I promise!"
+http://kb.mozillazine.org/about:config
+about:config
 
 Search signon.autologin.proxy and network.websocket.enabled in the Search Input Box then change their values as follow:
 
 signon.autologin.proxy=true
 network.websocket.enabled=false
 
+Disable multi-process windows
+	browser.tabs.remote.autostart = false
+	browser.tabs.remote.autostart.2 = false 
 
+Reduce Firefox Session History
+	browser.sessionhistory.max_entries	10		default:50
+
+Delete the content-prefs.sqlite and let it create again
+	about:support
+	Open Folder, shown next to Profile Folder, and delete content-prefs.sqlite there
+
+Refresh Firefox if fails
+	about:support
+	Refresh Firefox.
+	
 
 Proxy password problem in Mozilla Firefox 3 - SOLVED by accident :)
 
@@ -36,4 +50,48 @@ I figured out the solution by myself. The address of proxy was unfortunately add
 
 Double-click network.negotiate-auth.allow-proxies to toggle between true and false. The option must be set to false. (It seems counterintuitive, but you set it to false to make it work with the ISA proxy.)
 
+
+about:memory
+
+
+
+
+
+about:config > New boolean > config.trim_on_minimize=true
+browser.cache.memory.enable=true
+browser.cache.memory.capacity=8192	(~256M?)
+browser.sessionhistory.max_total_viewers=3
+
+
+about:config
+└network.http.pipelining → "true"
+└network.http.proxy.pipelining → 'true'
+└network.http.pipelining.maxrequests → "8"
+└browser.cache.memory.enable → "true"
+　→ Right click → "Create new" → "Integer value"
+　→ browser.cache.memory.capacity → numeric input
+※ 1GB installed memory: 16384
+※ 2GB installed memory: 32768
+* When the installed memory is 3 GB: 49152
+※ When installed memory is 4GB: 65536
+
+Also try
+browser.tabs.remote.autostart=true
+dom.ipc.processCount=2
+
+
+Add-ons > Shockwave Flash > 実行時に確認する
+
+
+コンテンツプロセス数の制限: Options > General > Performance > Use hardware acceleration when available = 2 (smaller for bad performance but less memory comsumption)
+
+
+C:\Program Files\Mozilla Firefox\defaults\profile\user.js
+
+
+about:memory to tuning
+
+
+Use SpeedyFox, Fireboot
+Use nightly Waterfox , Palemoon
 

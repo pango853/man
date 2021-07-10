@@ -246,3 +246,90 @@ From Run...
 ms-appdata:///roaming/git-bash_32px.ico	From %LOCALAPPDATA%\packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\RoamingState
 
 "icon" : "ms-appx:///ProfileIcons/{0caa0dad-35be-5f56-a8ff-afceeeaa6101}.png",
+
+# WMI Control
+wmimgmt.msc
+
+# Disable remote desktop clipboard
+https://www.ryadel.com/en/disable-remote-download-through-rdp-group-policy/
+
+Use the GPMC user interface to navigate through the following path: 
+	Windows Configuration > 
+	Administrative Templates > 
+	Windows Components > 
+	Remote Desktop Services > 
+	Remote Desktop Session Host > 
+	Device and Resource Redirection
+Access the following group policy settings and enable/disable them accordingly with your needs:
+
+    Do not allow Clipboard redirection
+    Do not allow COM port redirection
+    Do not allow drive redirection
+    Do not allow LPT port redirection
+
+# Windows Update
+
+```
+C:\Windows\System32\UsoClient.exe StartScan
+```
+
+PowerShell + COM
+```
+$autoUpdate = New-Object -ComObject Microsoft.Update.AutoUpdate
+$autoUpdate.DetectNow()
+```
+
+```
+wusa := "c:\windows\system32\wusa.exe"
+runwait %wusa%  /uninstall /kb:2952664 /norestart
+runwait %wusa%  /uninstall /kb:3021917    /norestart
+runwait, %wusa%  /uninstall /kb:3035583 /norestart
+msgbox, okay, all done!`rDon't forget to -hide- the updates now.
+
+wusa.exe /uninstall /kb:123456 /quiet /norestart
+wusa.exe Windows6.1-KB123456-x86.msu /quiet /norestart
+systeminfo | find ": KB"
+```
+
+Check Installed Updates list
+wmic qfe list > UpdateList.txt
+wmic qfe list full
+
+# Troubleshoot Performance Issues on Windows
+
+Wpr -start CPU
+(Now that you have started Wpr, it is time to reproduce the issue)
+Wpr -stop %TEMP%\highcpu-%COMPUTERNAME%.etl
+Cd %TEMP%
+
+The resulting etl file can be read by Windows Performance Analyzer (available in the Microsoft Store, or as part of the ADK download).
+WPA - Included in the Windows Assessment and Deployment Kit (Windows ADK).
+
+https://docs.microsoft.com/en-us/sysinternals/downloads/procmon
+Procmon64.exe /loadconfig ProcmonConfiguration_Processes_Interfering_Tanium.pmc
+
+Wpr -start cpu -start diskio -start fileio -start minifilter
+Collect some of the behavior
+Wpr -stop %TEMP%\slowio-%COMPUTERNAME%.etl
+
+
+This will generate a dump file of that process in the directory the command prompt is at. This can then be viewed in WinDBG (from the Microsoft store, or Windows SDK).
+https://docs.microsoft.com/en-us/sysinternals/downloads/procdump
+PROCDUMP -mp <PID>
+
+
+
+Windows Performance Toolkit in ADK installation
+https://aka.ms/adk and download the Windows ADK
+    WPR – Windows Performance Recorder Command-line application
+    WPRUI – Windows Performance Recorder User Interface application
+    WPA – Windows Performance Analyzer
+    WPT – Windows Performance Toolkit
+    ETW – Event Tracing for Windows
+
+# How to get PC memory specs (speed, size, type, part number, form factor)
+> wmic memorychip get devicelocator, manufacturer, partnumber, serialnumber, capacity, speed, memorytype, formfactor
+	Capacity    DeviceLocator  FormFactor  Manufacturer  MemoryType  PartNumber        SerialNumber  Speed
+	8589934592  DIMM B         12          80AD000080AD  0           HMA81GS6CJR8N-UH  2DFA4BF2      2400
+> wmic memorychip list full
+> systeminfo | findstr /C:"Total Physical Memory"

@@ -39,3 +39,20 @@ $ns.GetDefaultFolder($olFolderCalendar).Items.Restrict($Filter)
 
 TODO: https://devblogs.microsoft.com/scripting/use-powershell-to-export-outlook-calendar-information/
 TODO: https://github.com/umezy12/myscript/blob/master/calendar.ps1
+
+## Get Hash
+
+Get-ChildItem -Path H:\MUSIC\ –Recurse -File | %{ $_.FullName }
+Get-ChildItem -Path D:\tmp\MUSIC\ –Recurse -File -Name | ForEach-Object {
+	echo "$_"
+	CertUtil -hashfile "D:\tmp\MUSIC\$_" SHA1
+} >> test.txt
+
+
+CertUtil -hashfile <path to file> SHA1
+
+# Find empty directories
+
+(gci .\ -r | ? {$_.PSIsContainer -eq $True}) | ? {$_.GetFiles().Count -eq 0} | select FullName
+
+Get-ChildItem -Directory -Recurse | Where-Object { $_.GetFileSystemInfos().Count -eq 0 }
