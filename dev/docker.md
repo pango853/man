@@ -366,3 +366,6 @@ https://docs.docker.com/config/thirdparty/prometheus/
 	  ping2: *ping
 	  ping3: *ping
 ```
+
+# TODO
+Play with Docker - https://labs.play-with-docker.com/

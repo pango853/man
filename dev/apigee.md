@@ -604,6 +604,641 @@ Overview of the basic concepts of APIs.
 	  # userdel -rf apigee
 2.4. Course Completion
 
+
+
+## COURSE: API Development on Google Cloud's Apigee API Platform
+https://www.coursera.org/learn/api-development-apigee-gcp/home/welcome
+
+### Module 1 - Getting Started with API Development
+
+1.1. Welcome to Development
+	covering the basics of the API proxy
+	API functions like fault rules, logging, mediation, debugging
+1.2. API Proxy Overview
+1.2.1. What is a Proxy
+	Common Proxy Types
+		Open Proxy		Forward to another website another.com
+		Reverse Proxy	Hide backend site
+	API Proxy in Edge
+		- gain a level of control and insight
+		- insight into API usage
+		- decouple
+			shields consumer developers
+			innovate of API Provider
+			acts as a virtualzation layer
+			compose multiple backend services
+	API Proxy -> API Management
+	API Proxy
+		Inbound Request -> Proxy Endpoint	policies that make decisions about the request. e.g. Permission, limits, 
+		        -> Target Endpoint			formatting of how requests to the backend systems
+		-> Reponse -> Proxy Endpoint		
+		          -> Target Endpoint		
+		          -> Outbound
+
+1.2.2. Anatomy of an API Proxy
+	Platform Entities
+		Organization
+			Environment
+	API Proxies
+		Proxy Endpoint
+		Target Endpoint
+		Resources
+	Proxy Endpoint
+		Virtual Host, Flows, Route Rule, Fault Rules
+	Virtual Host
+	Policy Flows	PreFlow -> Conditional Flow -> PostFlow and PostClientFlow
+		PreFlow					security related and red limiting policies
+		Conditional Flow		
+		PostFlow				mediation policies
+		PostClientFlow			for logging messages after a response is returned to the client
+	Route Rules
+		URL
+		Target Endpoint
+		Conditional Targets		e.g. mock
+		Null Target
+	Target Endpoint
+		Flows, Load Balancer, Fault Rules
+	Fault Rules		exception handling
+	HTTPProxyConnection		in ProxyEndpoint	
+	HTTPTargetConnection	in TargetEndpoint	has a set of HTTP transport properties
+
+1.2.3. Practice Quiz
+	1/1 A ProxyEndpoint contains policies that affect the request and resonse to the backend?		FALSE	to the client not the backend!
+		Client --(request)--> ProxyEndpoint -> TargetEndpoint -> Backend
+		        <-- ProxyEndpoint <- TargetEndpoint <--(response)--/
+
+1.2.4. Debugging Using Trace
+	Trace Tool	DEVELOP menu > API Proxies > Select one > TRACE tab
+		Transaction menu on the left
+		Transaction map on the right
+
+1.3. Lab: Building your first API Proxy
+1.3.1. Building your first API Proxy in Apigee Edge
+	Pre-requisites: Using the OAS you created in the previous course to create an API proxy, in the `API Fundamentals and Design course`[DONE]
+	to build a pass-through API Proxy for an existing backend service.
+	Steps:
+		Develop > API Proxies, + Proxy button, select `Reverse Proxy` and click on `Use OpenAPI` button.
+			Select "products_spec" created earlier, Select and Next
+			Enter proxy details as below, and next, select all operations from OpenAPI to proxy and next.
+			- Proxy Name: Products
+			- Project Base Path: /v1
+			- Existing API: https://yourapigeeorgname-test.apigee.net/db
+			- Description: Product Information
+			Choose `Pass through(none)` from the authorization first and next.
+			Select `default` and `secure` virtual hosts and next
+			Select `test` environment and `Build and Deploy`
+			Click the link to view proxy.
+		Done!
+
+1.4. Lab: Test your Proxy
+1.4.1. Test your Proxy
+	Use `Postman` tool as a client to invoke the proxy. e.g. in Chrome, go to Chrome Apps and launch Postman.
+	Go to Chrome Apps and launch Postman
+	Click Import button to import the saved file downloaded from `https://raw.githubusercontent.com/apigeecs/apigee-engg-training-lab-resources/master/resources/Apigee-Edge-Dev-Training.postman_collection`.
+	Also import the environment downloaded from `https://raw.githubusercontent.com/apigeecs/apigee-engg-training-lab-resources/master/resources/Apigee-Edge-Dev-Training.postman_environment`
+	Then select the `Apigee-Edge-Dev-Training` environment and select the `Apigee-Edge-Dev-Training` collection
+	Send the `GET /products/{id}` request and observe the response.
+	You can also try with cURL or RESTClient, etc.
+
+
+		Import the collection below within Postman.
+			collection: https://raw.githubusercontent.com/apigeecs/apigee-engg-training-lab-resources/master/resources/Apigee-Edge-Dev-Training.postman_collection
+		Import environment - click setting icon and `Manage Environments` > `Import` to upload file, then set org and env with your Org(xxxx-eval) and Env(test) respectively, and add.
+			environment: https://raw.githubusercontent.com/apigeecs/apigee-engg-training-lab-resources/master/resources/Apigee-Edge-Dev-Training.postman_environment
+		Then select the "Apigee-Edge-Dev-Training" environment, click on the eye icon to double check.
+		Select the "Apigee-Edge-Dev-Training" collection
+		Select and send the "GET /products/{id}" request, and then observe the response.
+		You can also try with cURL, or RESTClient, etc.
+		# Deploying and Tracing your Proxy
+		Deploy -> start listening, while undeploy -> stop listening for inbound requests.
+		The "pass-through" proxy just created has no policies, just make an outbound call on behalf of the client when receive an inbound call.
+		On the API Proxy page, click on the `Deployment` drop-down, to choose or confirm the environment.
+		Click on the environment name and then click `Undeploy` in the confirmation box to undeploy the proxy from that environment.
+		Try undploy and send on Postman, and deploy again and send on Postman to see the result.
+		Tracing the execution of a proxy on `TRACE` tab from the `Products` API Proxy page.
+			select environment from `Deployment to Trace` drop-down like "Environment test, Revision 1", click the `Start Trace Session` button.
+		Invoke the "GET /products/{id}" request in Postman and check the `Transactions` section and `Transaction Map` section to see the transaction and its proxy flow.
+		Note that the `Transaction Map` is interactive, so you can click on steps and review details in the `Phase Details` section -- headers, variables, payload, properties and other relevant information.
+		After all, don't forget to click on the `Stop Trace` button.
+
+1.5. Lab: Deploy your Proxy
+1.5.1. Deploying and Tracing your Proxy
+	"deploy" an API Proxy means making its configuration active -- Apigee Edge begins listening for inbound requests on the base URL path and will execute the policy steps in the proxy configuration once request arrives. Then call the configured backend system and run the policies in the response flow when the response arrives.
+	To deploy or undeploy a proxy,
+		Edge UI > `Deployment` drop-down on the API Proxy page > click on environment name, green here means it is now deploying to.
+			After undeployed, the request fails with "Unable to identify proxy for host". You can try GET /products/{id} on Postman tool after undeployed it.
+	Click on the `TRACE` tab from the `Products` API Proxy page,
+		select the correct environment from the `Deployment to Trace` drop-down,
+			click the `Start Trace Session` button and then invoke the `GET /products/{id}` request in Postman
+				check the transaction appears in the `Transactions` section and its flow in the `Transaction Map` section,
+					click on the execution steps and review in the `Phase Details` section.
+			after all, click on the `Stop Trace` button.
+	References:
+	- Build a simple API Proxy - http://docs.apigee.com/api-services/content/build-simple-api-proxy
+	- Best practices for API proxy design and development - http://docs.apigee.com/api-services/content/best-practices-api-proxy-design-and-development
+	- Apigee Docs: Trace - http://docs.apigee.com/api-services/content/using-trace-tool-0
+	- Apigee Community on Tracing - https://community.apigee.com/topics/trace.html
+
+1.6. Conditions and Route Rules
+1.6.1. Conditions and Route Rules
+	to control an API proxy behaviour and route the traffic to the correct endpoints for processing.
+	Conditions
+		- Dynamic processing at runtime
+		- Defines operations on variables
+		- Results are boolean
+		- Allows chaining
+	Condition Format: <Condition>{variable.name}{operator}{"value"}</Condition>
+	Conditions - Proxy Execution	e.g. <Step><Condition>request.header.accept = "application/json"</Condition><Name>XMLToJSON</Name></Step>
+		NOTE: if you try to access a flow variable that is out of scope, you will receive a null value. No error will be generated.
+	Conditions - Flow Execution		e.g. <Flow name="GetRequests"><Condition>request.verb = "GET"</Condition><Request/>...<Response/></Flow><Flow>...Another flow...</Flow>
+		NOTE: The conditional flows are evaluated top to bottom, only the first one that evaluates to true is executed.
+	Conditions - Target end point route selection
+		<RouteRule name="xmlTarget"><Condition>request.header.Content-Type = "text/xml"</Condition><TargetEndpoint>XmlTargetEndpoint</TargetEndpoint></RouteRule>
+	Pattern matching in Conditions
+		- Matches
+			- <Condition>(proxy.pathsuffix Matches "/cat")</Condition>
+			- <Condition>(proxy.pathsuffix Matches "/*at")</Condition>
+			- <Condition>(proxy.pathsuffix Matches "/cat*")</Condition>
+			- <Condition>(proxy.pathsuffix Matches "/c%*at")</Condition>
+			- <Condition>(proxy.pathsuffix ~ "/c%*at")</Condition>		// Exactly same as Matches
+			- <Condition>(proxy.pathsuffix Like "/c%*at")</Condition>	// Exactly same as Matches
+		- JavaRegex
+			- <Condition>(proxy.pathsuffix JavaRegex "/cat")</Condition>
+			- <Condition>(proxy.pathsuffix JavaRegex "/c*t")</Condition>
+			- <Condition>(proxy.pathsuffix JavaRegex "/ca?t")</Condition>
+			- <Condition>(proxy.pathsuffix JavaRegex "/[cbr]at")</Condition>
+			- <Condition>(proxy.pathsuffix ~~ "/cat")</Condition>	// Exactly same as JavaRegex
+		- MatchesPath
+			- <Condition>(proxy.pathsuffix MatchesPath "/animals/*")</Condition>
+			- <Condition>(proxy.pathsuffix MatchesPath "/animals/**")</Condition>
+			- <Condition>(proxy.pathsuffix MatchesPath "/animals/*/wild/**")</Condition>
+			- <Condition>(proxy.pathsuffix ~/ "/animals/*")</Condition>
+			- <Condition>(proxy.pathsuffix LikePath "/animals/*")</Condition>
+	Route Rule
+		determines which target endpoint will handle the request, also allows API the flexibility to route to multiple target endpoints. e.g. can send requests to different backend servers.
+		e.g.
+		```xml
+		<ProxyEndpoint name="default">
+			<PreFlow/>
+			<Flows>
+				<Flow name="forecast"><Condition>proxy.pathsuffix MatchesPath &quot;/forecastrss%quot;</Condition></Flow>
+			</Flows>
+			<PostFlow/>
+			<HTTPProxyConnection>
+				<VirtualHost>default</VirtualHost>
+				<BasePath>/v1/weather</BasePath>
+			</HTTPProxyConnection>
+			<RouteRule name="default">
+				<TargetEndpoint>default</TargetEndpoint>
+			</RouteRule>
+		</ProxyEndpoint>
+		```
+		```xml
+		<TargetEndpoint name="default">
+			<PreFlow/>
+			<Flows/>
+			<PostFlow/>
+			<HTTPTargetConnection>
+				<URL>http://weather.apis.com</URL>
+			</HTTPTargetConnection>
+		</TargetEndpoint>
+		```
+
+		- No Target Routes, called "null route" - <RouteRule name="auth"><Condition>proxy.pathsuffix Matches "/auth"</Condition></RouteRule>
+		  Use where the system can return data without having to be directed to a backend server.
+		- Conditional Routes - <RouteRule name="routeToTestServer"><Condition>request.header.X-TestServer == "true"</Condition><TargetEndpoint>testServer</TargetEndpoint></RouteRule>
+		- Default Routes, called "default route" - <RouteRule name="default"><TargetEndpoint>default</TargetEndpoint></RouteRule>
+
+1.7. Lab: Conditions and Route Rules
+1.7.1. Conditions and Route Rules
+	Problem Statement: How to make changes to an OpenAPI Specification and push that change to the proxy?
+	Solution:
+		Learn the Create and Update Product operation here.
+		Part 1: Update OpenAPI Specification
+			`Develop Sepcs` in the side navigation menu
+					click the `products_spec` to open the specification
+						Have include new operations and definitaions - Create new product, Update Product and Product Availablity
+							In the `Apigee Edge Spec Editor` replace the contents with `https://raw.githubusercontent.com/apigeecs/apigee-engg-training-lab-resources/master/resources/products-sku-openapi.json`
+							NOTE: The Editor might suggest you to change to YAML format, click Cancel
+						 Update the host property and click Save
+							"host": "yourapigeeorgname-test.apigee.net",
+		Part 2: Include the new operation as Conditional flow in Products proxy
+			`Develop Proxies` > click Products to open the Overview tab
+				click the `Develop` tab to open the development view
+					click + button next to the `default` under `Proxy Endpoints`
+						select the `From OpenAPI` tab in `New Conditional Flow` dialog window
+							select all check boxes and click Add to create new sets of conditional flows in the proxy
+								after all, click Save
+			Invoke `GET /products/{id}/availability` request in Postman to see the product availability information.
+		Part 3: Conditions and Route Rules
+			Send the requests to different targets based on a Condition.
+			Need to add CORS(Cross-origin resource sharing) support to the proxy.
+			And first we start from adding `CORS preflight`. CORS preflight refers to sending a request to a server to verify if it supports CORS.
+			Click the + button next to `default` under `Proxy Endpoints` to create a new Conditional flow for OptionsPreFlight,
+				select the Manual tab and set as below to create a new flow, click Add and then click Save as well.
+					```
+					Flow Name: OptionsPreFlight
+						Description: Adding CORS Support
+						Condition Type: Custom
+						Condition: request.verb == "OPTIONS" and request.header.origin != null AND request.header.Access-Control-Request-Method != null
+					```
+			Then in the Editor, MUST before the default `<RouteRule>` configuration, create a Null target RouteRule for the OPTIONS request as below.
+				```
+				<RouteRule name="NoRoute">
+					<Condition>request.verb == "OPTIONS" AND request.header.origin != null
+						AND request.header.Access-Control-Request-Method != null</Condition>
+				</RouteRule>
+				```
+				Then click Save.
+				Click OptionsPreFlight flow and then click the + Step button in its response flow,
+					select `Assign Message policy` under the MEDIATION section and set as below
+						Display Name: Add-CORS
+						Name: Add-CORS
+					and click Add,
+					add the following in the policy.
+					```
+					<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+					<AssignMessage async="false" continueOnError="false" enabled="true" name="Add-CORS">
+						<DisplayName>Add-CORS</DisplayName>
+						<Properties/>
+						<Add>
+							<Headers>
+								<Header name="Access-Control-Allow-Origin">{request.header.origin}</Header>
+								<Header name="Access-Control-Allow-Headers">origin, x-requested-with, accept, content-type</Header>
+								<Header name="Access-Control-Max-Age">3628800</Header>
+								<Header name="Access-Control-Allow-Methods">GET, PUT, POST, DELETE</Header>
+							</Headers>
+						</Add>
+						<IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+						<AssignTo createNew="false" transport="http" type="response"/>
+					</AssignMessage>
+					```
+					after all click Save.
+			To test, you can use CORS tester like `https://test-cors.org` and check if the Preflight OPTIONS call happens and the response headers are set as expected.
+TODO:https://www.coursera.org/learn/api-development-apigee-gcp/exam/xuUGv/shared-flows-and-flow-hooks
+	TODO: Merge below
+		Problem: how to make changes to an OAS and push that change?
+		Solution: XXXXXXXXXXXXXXXXXXXXXXXXXXXx?????? summary for below
+		Part 1: Update OpenAPI Specification
+			Develop > Specs, click "product_spec" to open the specification,
+				from there for example Create a new product, update Product and Product Availability, (??? what is these 2)
+					copy and replace content of the spec in Spec Editor from below 
+					https://raw.githubusercontent.com/apigeecs/apigee-engg-training-lab-resources/master/resources/products-sku-openapi.json
+			Now you check new operations in the Editor.
+			Note that you need to update the `host` property to refer to your actual org and env, and Save it.
+				> "host": "yourapigeeorgname-test.apigee.net",
+		Part 2: Include the new operation as Conditional flow in Products proxy
+			Develop > Proxies, and click Products, click the `DEVELOP` tab, click + button next to `default` under `Proxy Endpoints` to pop-up `New Conditional Flow` dialog,
+				select `From OpenAPI` tab, select the check boxes and Add, see if new sets of conditional flows created and click Save.
+			Invoke the "GET /products/{id}/availability" request in Postman to see the result.
+		Part 3: Conditions and Route Rules
+			Problem: How can I make changes to an OpenAPI Specification and push that change to the proxy already created?
+			Solution:
+			Part1: Update OpenAPI Specification
+				Develop > Specs, click the "products_spec" to open the specification,
+					have included new operations and definitions - Create new product, Update Product and Product Availability	????
+						copy the contents from https://raw.githubusercontent.com/apigeecs/apigee-engg-training-lab-resources/master/resources/products-sku-openapi.json and replace existing contents of the spec in the Apigee Edge Spec Editor NOTE: The Editor might suggest you to change to YAML format, click Cancel if asked
+		5. Now you will see new operations in the Editor
+		6. Now you need to update the host property to refer to your Apigee organization and environment. Change the hostname from
+		to
+		7. Click Save
+			Part2: Include the new operation as Conditional flow in Products proxy
+		1. Select Develop > Proxies and click Products to open the Overview tab
+		2. Click the Develop tab on the top right to open the development view
+		3. In the left menu, click the + button next to the default under Proxy Endpoints
+		4. A dialog window for New Conditional Flow will pop-up. Select the From OpenAPI tab
+		5. Select the check boxes and click Add
+		6. New sets of conditional flows will be created in the proxy.
+
+		7. Click Save
+		8. Invoke the GET /products/{id}/availability request in Postman. You will see a response with product availability information (see example below)
+		```
+		{
+		    "entities": [
+		        {
+		            "available_quantity": 10,
+		            "created_date": 1466672915,
+		            "discount": 0.15,
+		            "expiry_date": 1498208912,
+		            "images": [
+		                "http://example.com/imagegallery/store/product/Gigantic/9/_9103069.jpg",
+		                "http://example.com/imagegallery/store/product/Large/18/_9102838.jpg"
+		            ],
+		            "inventory_type": "CONTINUE_SHOPPING",
+		            "name": "S697690",
+		            "price": 198,
+		            "product_id": "697690",
+		            "sku_description": "A comfortable yet stylish mid-rise waist gives way to the lean tapered legs on a pair of medium-rinse skinnies.\\n31\" inseam; 12\" leg opening; 9\" front rise; 13\" back rise (size 29).\\nZip fly with two-button closure.\\nFive-pocket style.\\nDark dye may transfer to lighter materials.\\n98% cotton, 2% elastane.\\nMachine wash cold, tumble dry low.\\nBy Hudson Jeans; Made in the USA of imported fabric.\\nt.b.d.",
+		            "sku_name": "Collin' Skinny Jeans (Saville)"
+		        }
+		    ]
+		}
+		```
+			Part3: Conditions and Route Rules
+		In this section, lets discuss how to use Route Rules to send the requests to different targets based on a Condition. Let's do this by adding CORS support to our proxy.
+		CORS (Cross-origin resource sharing) is a standard mechanism that allows JavaScript XMLHttpRequest (XHR) calls executed in a web page to interact with resources from non-origin domains. Most modern browsers support CORS.
+		CORS preflight refers to sending a request to a server to verify if it supports CORS. Typical preflight responses include which origins the server will accept CORS requests from, a list of HTTP methods that are supported for CORS requests, headers that can be used as part of the resource request, the maximum time preflight response will be cached, and others. If the service does not indicate CORS support or does not wish to accept cross-origin requests from the client's origin, the cross-origin policy of the browser will be enforced and any cross-domain requests made from the client to interact with resources hosted on that server will fail.
+		Apigee does not include a CORS preflight solution out of the box, but it is possible to implement, as described in this section. The objective is for the proxy to evaluate an OPTIONS request in a conditional flow. The proxy can then send an appropriate response back to the client.
+		1. Create a new Conditional flow for OptionsPreFlight. Click the + as shown in the screenshot
+		2. Select the Manual tab and provide the following information in the dialog to create a new flow
+		```
+		Flow Name: OptionsPreFlight
+
+		    Description: Adding CORS Support
+
+		    Condition Type: Custom
+
+		    Condition: request.verb == "OPTIONS" AND request.header.origin != null AND request.header.Access-Control-Request-Method != null
+		```
+		3. Click Add. You should see a new Conditional flow created as highlighted below. Click Save
+		4. Let's create a Null target RouteRule with a condition for the OPTIONS request. Add the following lines of code to the ProxyEndpoint configuration. Note that there is no TargetEndpoint specified.
+		```
+		<RouteRule name="NoRoute">
+		        <Condition>request.verb == "OPTIONS" AND request.header.origin != null
+		            AND request.header.Access-Control-Request-Method != null</Condition>
+		</RouteRule>
+		```
+		NOTE: Make sure the above lines of code are added before the default RouteRule configuration
+		5. Click Save to save the configuration changes made to the proxy
+		6. The Add CORS policy is implemented as an AssignMessage policy, which adds the appropropriate headers to the response. Click OptionsPreFlight flow on the left menu under the Proxy Endpoints and then the + button in the response flow as mentioned in the screenshot below
+		7. A window will open, select the Assign Message policy under the Mediation section. In the "Display Name" text box, provide the name of the policy, in this case lets call it "Add-CORS". Click Add.
+		8. Add the following lines of code in the policy
+		```
+		<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+		<AssignMessage async="false" continueOnError="false" enabled="true" name="Add-CORS">
+		    <DisplayName>Add-CORS</DisplayName>
+		    <Properties/>
+		    <Add>
+		        <Headers>
+		            <Header name="Access-Control-Allow-Origin">{request.header.origin}</Header>
+		            <Header name="Access-Control-Allow-Headers">origin, x-requested-with, accept, content-type</Header>
+		            <Header name="Access-Control-Max-Age">3628800</Header>
+		            <Header name="Access-Control-Allow-Methods">GET, PUT, POST, DELETE</Header>
+		        </Headers>
+		    </Add>
+		    <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+		    <AssignTo createNew="false" transport="http" type="response"/>
+		</AssignMessage>
+		```
+		9. Click Save to save the configuration changes made to the proxy
+		10. To test, you can use CORS tester, for example https://test-cors.org and check if the Preflight OPTIONS call happens and the response headers are set as expected. You can find a trace screenshot below.
+			NOTE: We will use the Create and Update Product operation in the future labs. Also you might think that the response we get is not matching the response in the OpenAPI specification. We have labs that will help you change the response to adhere to our OpenAPI Specification
+		Check on https://www.coursera.org/learn/api-development-apigee-gcp/supplement/EbUcq/conditions-and-route-rules
+
+1.8. Quiz - Getting Started with API Development
+	1/7 Where is the API Proxy typically located?		Between the Application and the Backend
+	2/7 One of the advantages of an API proxy is that it hides the complexity of backend systems from the application developer?		TRUE
+	3/7 3 primary componetns that make up an API Proxy?					Resources, Target Endpoint, Proxy Endpoint
+	4/7 Which is a type of policy flow?									PreFlow, ConditionalFlow, PostFlow, PostClientFlow, [o] All of the above
+	5/7 Trace is a useful tool when it comes to debugging an API?		TRUE
+	6/7 Which of the following is the proper format for Conditions?		<Condition>{variable.name}{operator}{"value"}</Condition>
+	7/7 Conditional Flows are evaluated top to bottom so you should include your catch all condition at the very bottom?		TRUE
+
+### Module 2 - API Policies and Management
+2.1. API Policies Overview
+2.1.1. Module Overview
+	Cover the various out of the box policies in the Apigee API platform, and how to create custom policies.
+2.1.2. Policy Overview
+	Policies are the fundamental building blocks that make up your API.
+	What is a Policy?
+		- is a module that implementes a specific, limited management function
+		- by using policies, you can 'program' API behavior without writing any code
+		- designed to let you add common types of management capabilities to an API easily and reliably
+		- can also implement custom login in the form of JavaScript, Python, Java, and XSLT with extension policies
+	Out of the box policies (pre-built policies)
+		- Traffic management policies	Cache policies, Concurrent Rate Limit policy, Quota policy, Reset Quota policy, Spike Arrest policy
+		- Mediation policies			Access Entity policy, Assign Message policy, Extract Variables policy, JSON to XML policy, Key Value Map Operations policy, Raise Fault policy, SOAP Message Validation policy, XML to SOAP policy, XSL Tranform policy
+		- Security policies				Access Control policy, Basic Authentication policy, JSON Threat Protection policy, LDAP policy(On-Prem installation only), OAuth v2.0 policies, OAuth v1.0a policy, Regular Expression Protection policy, SAML Assertion policies, Verify API Key policy, XML Threat Protection policy
+		- Extension policies			Java Callout policy, JavaScript policy, Message Logging policy, Python Script policy, Serice Callout policy, Statistics Collection policy		NOTE: Some are for Cloud Enterprise only
+	Policies enable fine grain controls in the APi proxy
+	Build APIs faster to help...
+		- Traffic Management	manage interactions with API consumers and optimize performance
+			Quota, Spike Arrest, Response Cache, Lookup Cache, Populate Cache, Invalidate Cache, Reset Quota
+		- Mediation		transform, translate and reformat data for easy consumption
+			JSON to XML, XML to JSON, Raise Fault, XSL Transform, SOAP Message Validation, Assign Message, Extract Variables, Access Entity, Key Value Map Operations
+		- Security		secure APIs and protect back-end systems from attack
+			XML Threat Protection, JSON Threat Protection, Regular Expression Protection, OAuth v2.0, Get OAuth v2.0 Info, OAuth v1.0a, Verify API Key, Access Control, Generate SAML Assertion, Validate SAML Assertion
+		- Extension		extend with programming when you need it
+			Java Callout, Python, JavaScript, Service Callout, Statistics Collector, Message Logging
+2.1.3. Traffic Management
+	Some quick walkthrough example scenarios:
+	Spike Arrest
+		- protect target backend against severe traffic spikes and DoS attacks
+		- control requests by second and minute
+		- typically used in "preflow"
+	Quota		Quota, Reset Quota
+		- limit number of requests over a period of time
+		- able to limit for everyone, or configure based on product, developer, etc.
+		- typically used in "preflow"
+		- `Reset Quota` policy to reset it
+	Concurrent Rate Limit
+		- used to limit the number of concurrent connections, throttles inbound connections from Edge to backend services
+		- NOT typically used but is available
+		- attach to both the request and response flows in the Target endpoint
+	Response Cache
+		- cache the whole HTTP response (body, headers, status code, etc)
+		- can improve performance by retrieving response from the cache instead of back end
+		- attach in both the request and response flows
+		- typically only used with GET calls
+	Cache		Lookup Cache, Populate Cache, Invalidate Cache
+		- cache specific pieces of data within the proxy
+		- examples: tokens, service callout responses, data from previous calls, etc.
+		- control the cache by "populate", "lookup", "invalidate"
+
+2.1.4. Practice Quiz
+	1/1	API Policies can NOT be strung together in an API proxy. Only one API policy can exist in an API proxy?			FALSE
+
+2.2. Lab: Traffic Management
+2.2.1. Spike Arrest
+	TODO... lab
+
+2.2.2. Quota
+	TODO... lab
+	References
+		Spike Arrest Policy - http://docs.apigee.com/api-services/reference/spike-arrest-policy
+		Rate Limiting - http://docs.apigee.com/api-services/content/rate-limiting
+		Quota Policy Reference - http://docs.apigee.com/api-services/reference/quota-policy
+		Community post on setting up dynamic quotas https://community.apigee.com/questions/1488/how-do-the-quota-settings-on-an-api-product-intera.html
+		Comparing Rate Limiting Policies - http://docs.apigee.com/api-services/content/comparing-quota-spike-arrest-and-concurrent-rate-limit-policies
+
+2.3. API Policies Overview (continued)
+2.3.1. Mediation
+	Mediation covers the group of policies that interact with, and have the ability to transform the request in response as your proxy executes.
+	In this module, we'll review the Apigee Edge policies specific to mediation.
+	JSON to XML, XML to JSON
+		TODO...
+	XSL Transform
+	SOAP Message Validation
+	Assign Message
+	Extract Variables
+	Extract Variables + Assign Message
+	Raise Fault
+	Call All Flow Example
+	Access Entity
+	Key Value Map (KVM) Operations
+	
+2.3.2. API Security
+	Cover all the policies that pertain to security within the Apigee Edge Management Platform.
+	Basic Authentication
+	XML, JSON Regex, Threat Protection
+	Verify API Key Policy
+	OAuth v1.0a
+	OAuth v2
+	SAML		Generate SAML Assertion, Validation SAML Assertion
+	Access Control
+	
+2.4. Lab: Mediation and Security
+2.4.1. Mediation
+	TODO...
+2.4.2. Security
+	TODO...
+	References
+		Assign Message Policy - https://docs.apigee.com/api-services/reference/assign-message-policy
+		Basic Authentication Policy - https://docs.apigee.com/api-services/reference/basic-authentication-policy
+
+2.5. Quiz - API Policies and Management
+	1/4	In Apigee Edge, if an out of the box policy is not provided, you can create your own custom policy?		=> TRUE
+	2/4	The Spike Arrest policy helps protect against a severe spike in traffic and denial of service attacks. As such, where should this policy typically be located?		PreFlow/PostFlow/ConditionalFlow/PostClientFlow	=> PreFlow
+	3/4	Mediation refers to which of the following?			=> The ability to transform the request and response. NOT: The ability to secure your API through authentication; The ability to manage traffic coming into your API; The ability to capture analytics on the API performance
+	4/4	As a recommendation, OAuth v2 is preferred over OAuth v1.0a				=> TRUE
+### Module 3 - Target Servers and API Products
+3.1. Target Servers
+	Key Concepts
+	- Compare the various types of API product strategies
+	- Apply Named Target Servers to your API proxies
+	- Build in authentication to a target server
+3.1.1. Module Overview
+	- discover how to secure and name Target Servers in Apigee Edge
+	- provide an overview of the commonly used methods to productize APIs
+	- API products is an important topic covered in the Fundamentals course so we'll be showing you how to bundle the API proxies you have created into "products"
+	- Hands on exercises are included to walk you through the process.
+3.1.2. Dealing with Secure Target Server
+	Building Target Authentication
+	- Hard Code
+	- Build Time Replacement
+	- Using Node.js Access Vault		NOTE: Only Node.js
+	- Using Key Value Map
+	TODO...
+3.1.3. Setting up a Named Target Server
+	Exiting Target URL
+	TODO...
+	Target Server with SSL
+	Multiple Target Servers
+	Load Balancer
+	- RoundRobin
+	- Weighted
+	- LeastConnection
+	Health Monitor - HTTPMonitor
+	Health Monitor - TCPMonitor
+3.2. Lab: KVM and Target Server Creation
+3.2.1. Secure Target Server
+	Problem: hard-coding the auth credentials in Assign Message policy might have to be changed when promoted to other environments
+	Solution: By using encrypted Key Value Maps
+	TODO...
+3.2.2. Setting Up Named Target Server
+	Admin > Environments
+	TODO...
+
+3.3. API Products
+3.3.1. Product Design
+	Product Overview
+	TODO...
+	Product Strategies
+	- API Proxy Model		1-to-1	api proxy to product
+	- Business Model		business unit. multiple API resources to product
+	- Ownership Model		dev team unit. multiple API resources to product
+	- Service Plan Model	by service level e.g. Bronze, Gold plan grouping API resources to product
+3.4. Lab: Product, Developer, and Developer Apps
+3.4.1. Product, Developer, and Developer App
+	Publish > +API Product
+	Publish > Developers,  +Developer
+	Publish > Apps
+	Verify API Key policy
+	TODO...
+	
+3.5. Quiz - Target Servers and API Products
+	TODO...
+### Module 4 - Error Handling and Logging
+4.1. Error Handling and Logging
+4.1.1. Module Overview
+	TODO...
+4.1.2. Fault Rules and Error Responses
+	Terminology
+	- Raise Fault policy
+	- Edge raises an error during policy execution
+	- Fault Rule = Fault Handler ()
+	TODO...
+	Fault handling
+	Rewrite Backend Error Response
+	Raise Fault policy
+	
+4.1.3. Logging
+	Edge Logging Services
+	Message Logging Policy		that is an asynchronous flow in the ProxyEndpoint in the PostClientFlow. If it include the message logging policy here, then Apigee will log the message after the response is sent to the client.
+	TODO...
+4.2. Lab: Fault Rules Error Responses and Logging
+4.2.1. Fault Rules Error Responses
+	TODO...
+4.2.2. Logging to External Service Provider - Loggly
+	TODO...
+4.3. Quiz - Error Handling and Logging
+	TODO...
+
+### Module 5 - Shared Flows, Flow Hooks, and Extensions
+5.1. Shared Flows and Flow Hooks, Flow Hooks, and Extensions
+5.1.1. Module Overview
+	TODO...
+5.1.2. Shared Flows and Flow Hooks
+	What is a Shared Flow?
+	TODO...
+	Flow Hooks
+	- Pre-proxy Flow Hook
+	- Pre-target Flow Hook
+	- Post-target Flow Hook
+	- Post-poxy Flow Hook
+5.1.3. Extentions
+	JavaScript Callout
+	TODO...
+	Flow Callout		Calls out to a shared flow
+	Statistics Collector		
+5.2. Lab: Shared Flows
+5.2.1. Shared Flows and Flow Hooks
+	TODO...
+5.3. Quiz - Shared Flows and Flow Hooks
+	TODO...
+5.4. Optional: Optional Labs
+5.4.1. Extensions - Java
+	TODO...
+5.4.2. Extensions - Python
+	TODO...
+5.4.3. Honors Lesson Completion
+	TODO...
+### Module 6 - Mediation, Caching, and Node.js Integration
+6.1. Service Callout and Advance Mediation
+6.1.1. Moduule Overview
+6.1.2. Service Callout and Mash Ups
+6.1.3. Advance Mediation with XSL and SOAP
+6.1.4. Practice Quiz
+6.2. Lab: Mediation and Caching
+6.2.1. Service Callout
+6.2.2. Advanced Mediation
+6.3. Caching and Analytics
+6.3.1. Caching
+6.3.2. Edge Analytics
+6.4. Lab: Caching and Analytics
+6.4.1. Caching
+6.4.2. Edge Analytics
+6.5. Node.js Integration and Deployment Tools
+6.5.1. Node.js Integration with Apigee Edge
+6.5.2. Packaging and Deployment
+6.6. Lab: Node.js Integration and Deployment Tools
+6.6.1. Node.js Integration with Edge
+6.6.2. Deployment Tools
+6.7. Quiz - Advance Development Topics
+
+
+
+
 ## COURSE: API Security on Google Cloud's Apigee API Platform
 
 ### Module 1 - API Security and why it's important
@@ -1845,499 +2480,6 @@ About client credentials
 			7. Deploy webserver-app API proxy.
 
 
-## COURSE: API Development on Google Cloud's Apigee API Platform
-https://www.coursera.org/learn/api-development-apigee-gcp/home/welcome
-
-### Module 1 - Getting Started with API Development
-
-1.1. Welcome to Development
-	covering the basics of the API proxy
-	API functions like fault rules, logging, mediation, debugging
-1.2. API Proxy Overview
-1.2.1. What is a Proxy
-	Common Proxy Types
-		Open Proxy		Forward to another website another.com
-		Reverse Proxy	Hide backend site
-	API Proxy in Edge
-		- gain a level of control and insight
-		- insight into API usage
-		- decouple
-			shields consumer developers
-			innovate of API Provider
-			acts as a virtualzation layer
-			compose multiple backend services
-	API Proxy -> API Management
-	API Proxy
-		Inbound Request -> Proxy Endpoint	policies that make decisions about the request. e.g. Permission, limits, 
-		        -> Target Endpoint			formatting of how requests to the backend systems
-		-> Reponse -> Proxy Endpoint		
-		          -> Target Endpoint		
-		          -> Outbound
-
-1.2.2. Anatomy of an API Proxy
-	Platform Entities
-		Organization
-			Environment
-	API Proxies
-		Proxy Endpoint
-		Target Endpoint
-		Resources
-	Proxy Endpoint
-		Virtual Host, Flows, Route Rule, Fault Rules
-	Virtual Host
-	Policy Flows	PreFlow -> Conditional Flow -> PostFlow and PostClientFlow
-		PreFlow					security related and red limiting policies
-		Conditional Flow		
-		PostFlow				mediation policies
-		PostClientFlow			for logging messages after a response is returned to the client
-	Route Rules
-		URL
-		Target Endpoint
-		Conditional Targets		e.g. mock
-		Null Target
-	Target Endpoint
-		Flows, Load Balancer, Fault Rules
-	Fault Rules		exception handling
-	HTTPProxyConnection		in ProxyEndpoint	
-	HTTPTargetConnection	in TargetEndpoint	has a set of HTTP transport properties
-
-1.2.3. Practice Quiz
-	1/1 A ProxyEndpoint contains policies that affect the request and resonse to the backend?		FALSE	to the client not the backend!
-		Client --(request)--> ProxyEndpoint -> TargetEndpoint -> Backend
-		        <-- ProxyEndpoint <- TargetEndpoint <--(response)--/
-
-1.2.4. Debugging Using Trace
-	Trace Tool	DEVELOP menu > API Proxies > Select one > TRACE tab
-		Transaction menu on the left
-		Transaction map on the right
-
-1.3. Lab: Building your first API Proxy
-1.3.1. Building your first API Proxy in Apigee Edge
-	This lab requires the completion of the labs in the `API Fundamentals and Design course`
-	to build a pass-through API Proxy for an existing backend service.
-	Use the OpenAPI specification created in the previous course to create an API proxy in Apigee Edge.
-		Login to apigee.com/edge > `Develop API Proxies` menu item > + Proxy > Select `Reverse proxy` and click `Use OpenAPI`
-			select the specification `products_spec` created earlier >  enter proxy details as below
-				Proxy Name: Products
-				Project Base Path: /v1
-				Existing API: https://yourapigeeorgname-test.apigee.net/db
-				Description: Product Information
-			choose `Pass throught (none)`
-			Ensure `test` environment is selected and click `Build and Deploy`
-1.4. Lab: Test your Proxy
-1.4.1. Test your Proxy
-	Use `Postman` tool as a client to invoke the proxy.
-	Go to Chrome Apps and launch Postman
-	Click Import button to import the saved file downloaded from `https://raw.githubusercontent.com/apigeecs/apigee-engg-training-lab-resources/master/resources/Apigee-Edge-Dev-Training.postman_collection`.
-	Also import the environment downloaded from `https://raw.githubusercontent.com/apigeecs/apigee-engg-training-lab-resources/master/resources/Apigee-Edge-Dev-Training.postman_environment`
-	Then select the `Apigee-Edge-Dev-Training` environment and select the `Apigee-Edge-Dev-Training` collection
-	Send the `GET /products/{id}` request and observe the response.
-	You can also try with cURL or RESTClient, etc.
-1.5. Lab: Deploy your Proxy
-1.5.1. Deploying and Tracing your Proxy
-	"deploy" an API Proxy means making its configuration active -- Apigee Edge begins listening for inbound requests on the base URL path and will execute the policy steps in the proxy configuration once request arrives. Then call the configured backend system and run the policies in the response flow when the response arrives.
-	To deploy or undeploy a proxy,
-		Edge UI > `Deployment` drop-down on the API Proxy page > click on environment name, green here means it is now deploying to.
-			After undeployed, the request fails with "Unable to identify proxy for host". You can try GET /products/{id} on Postman tool after undeployed it.
-	Click on the `TRACE` tab from the `Products` API Proxy page,
-		select the correct environment from the `Deployment to Trace` drop-down,
-			click the `Start Trace Session` button and then invoke the `GET /products/{id}` request in Postman
-				check the transaction appears in the `Transactions` section and its flow in the `Transaction Map` section,
-					click on the execution steps and review in the `Phase Details` section.
-			after all, click on the `Stop Trace` button.
-	References:
-	- Build a simple API Proxy - http://docs.apigee.com/api-services/content/build-simple-api-proxy
-	- Best practices for API proxy design and development - http://docs.apigee.com/api-services/content/best-practices-api-proxy-design-and-development
-	- Apigee Docs: Trace - http://docs.apigee.com/api-services/content/using-trace-tool-0
-	- Apigee Community on Tracing - https://community.apigee.com/topics/trace.html
-
-1.6. Conditions and Route Rules
-1.6.1. Conditions and Route Rules
-	to control an API proxy behaviour and route the traffic to the correct endpoints for processing.
-	Conditions
-		- Dynamic processing at runtime
-		- Defines operations on variables
-		- Results are boolean
-		- Allows chaining
-	Condition Format: <Condition>{variable.name}{operator}{"value"}</Condition>
-	Conditions - Proxy Execution	e.g. <Step><Condition>request.header.accept = "application/json"</Condition><Name>XMLToJSON</Name></Step>
-		NOTE: if you try to access a flow variable that is out of scope, you will receive a null value. No error will be generated.
-	Conditions - Flow Execution		e.g. <Flow name="GetRequests"><Condition>request.verb = "GET"</Condition><Request/>...<Response/></Flow><Flow>...Another flow...</Flow>
-		NOTE: The conditional flows are evaluated top to bottom, only the first one that evaluates to true is executed.
-	Conditions - Target end point route selection
-		<RouteRule name="xmlTarget"><Condition>request.header.Content-Type = "text/xml"</Condition><TargetEndpoint>XmlTargetEndpoint</TargetEndpoint></RouteRule>
-	Pattern matching in Conditions
-		- Matches
-			- <Condition>(proxy.pathsuffix Matches "/cat")</Condition>
-			- <Condition>(proxy.pathsuffix Matches "/*at")</Condition>
-			- <Condition>(proxy.pathsuffix Matches "/cat*")</Condition>
-			- <Condition>(proxy.pathsuffix Matches "/c%*at")</Condition>
-			- <Condition>(proxy.pathsuffix ~ "/c%*at")</Condition>		// Exactly same as Matches
-			- <Condition>(proxy.pathsuffix Like "/c%*at")</Condition>	// Exactly same as Matches
-		- JavaRegex
-			- <Condition>(proxy.pathsuffix JavaRegex "/cat")</Condition>
-			- <Condition>(proxy.pathsuffix JavaRegex "/c*t")</Condition>
-			- <Condition>(proxy.pathsuffix JavaRegex "/ca?t")</Condition>
-			- <Condition>(proxy.pathsuffix JavaRegex "/[cbr]at")</Condition>
-			- <Condition>(proxy.pathsuffix ~~ "/cat")</Condition>	// Exactly same as JavaRegex
-		- MatchesPath
-			- <Condition>(proxy.pathsuffix MatchesPath "/animals/*")</Condition>
-			- <Condition>(proxy.pathsuffix MatchesPath "/animals/**")</Condition>
-			- <Condition>(proxy.pathsuffix MatchesPath "/animals/*/wild/**")</Condition>
-			- <Condition>(proxy.pathsuffix ~/ "/animals/*")</Condition>
-			- <Condition>(proxy.pathsuffix LikePath "/animals/*")</Condition>
-	Route Rule
-		determines which target endpoint will handle the request, also allows API the flexibility to route to multiple target endpoints. e.g. can send requests to different backend servers.
-		e.g.
-		```xml
-		<ProxyEndpoint name="default">
-			<PreFlow/>
-			<Flows>
-				<Flow name="forecast"><Condition>proxy.pathsuffix MatchesPath &quot;/forecastrss%quot;</Condition></Flow>
-			</Flows>
-			<PostFlow/>
-			<HTTPProxyConnection>
-				<VirtualHost>default</VirtualHost>
-				<BasePath>/v1/weather</BasePath>
-			</HTTPProxyConnection>
-			<RouteRule name="default">
-				<TargetEndpoint>default</TargetEndpoint>
-			</RouteRule>
-		</ProxyEndpoint>
-		```
-		```xml
-		<TargetEndpoint name="default">
-			<PreFlow/>
-			<Flows/>
-			<PostFlow/>
-			<HTTPTargetConnection>
-				<URL>http://weather.apis.com</URL>
-			</HTTPTargetConnection>
-		</TargetEndpoint>
-		```
-
-		- No Target Routes, called "null route" - <RouteRule name="auth"><Condition>proxy.pathsuffix Matches "/auth"</Condition></RouteRule>
-		  Use where the system can return data without having to be directed to a backend server.
-		- Conditional Routes - <RouteRule name="routeToTestServer"><Condition>request.header.X-TestServer == "true"</Condition><TargetEndpoint>testServer</TargetEndpoint></RouteRule>
-		- Default Routes, called "default route" - <RouteRule name="default"><TargetEndpoint>default</TargetEndpoint></RouteRule>
-
-1.7. Lab: Conditions and Route Rules
-1.7.1. Conditions and Route Rules
-	Problem Statement: How to make changes to an OpenAPI Specification and push that change to the proxy?
-	Solution:
-		Learn the Create and Update Product operation here.
-		Part 1: Update OpenAPI Specification
-			`Develop Sepcs` in the side navigation menu
-					click the `products_spec` to open the specification
-						Have include new operations and definitaions - Create new product, Update Product and Product Availablity
-							In the `Apigee Edge Spec Editor` replace the contents with `https://raw.githubusercontent.com/apigeecs/apigee-engg-training-lab-resources/master/resources/products-sku-openapi.json`
-							NOTE: The Editor might suggest you to change to YAML format, click Cancel
-						 Update the host property and click Save
-							"host": "yourapigeeorgname-test.apigee.net",
-		Part 2: Include the new operation as Conditional flow in Products proxy
-			`Develop Proxies` > click Products to open the Overview tab
-				click the `Develop` tab to open the development view
-					click + button next to the `default` under `Proxy Endpoints`
-						select the `From OpenAPI` tab in `New Conditional Flow` dialog window
-							select all check boxes and click Add to create new sets of conditional flows in the proxy
-								after all, click Save
-			Invoke `GET /products/{id}/availability` request in Postman to see the product availability information.
-		Part 3: Conditions and Route Rules
-			Send the requests to different targets based on a Condition.
-			Need to add CORS(Cross-origin resource sharing) support to the proxy.
-			And first we start from adding `CORS preflight`. CORS preflight refers to sending a request to a server to verify if it supports CORS.
-			Click the + button next to `default` under `Proxy Endpoints` to create a new Conditional flow for OptionsPreFlight,
-				select the Manual tab and set as below to create a new flow, click Add and then click Save as well.
-					```
-					Flow Name: OptionsPreFlight
-						Description: Adding CORS Support
-						Condition Type: Custom
-						Condition: request.verb == "OPTIONS" and request.header.origin != null AND request.header.Access-Control-Request-Method != null
-					```
-			Then in the Editor, MUST before the default `<RouteRule>` configuration, create a Null target RouteRule for the OPTIONS request as below.
-				```
-				<RouteRule name="NoRoute">
-					<Condition>request.verb == "OPTIONS" AND request.header.origin != null
-						AND request.header.Access-Control-Request-Method != null</Condition>
-				</RouteRule>
-				```
-				Then click Save.
-				Click OptionsPreFlight flow and then click the + Step button in its response flow,
-					select `Assign Message policy` under the MEDIATION section and set as below
-						Display Name: Add-CORS
-						Name: Add-CORS
-					and click Add,
-					add the following in the policy.
-					```
-					<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-					<AssignMessage async="false" continueOnError="false" enabled="true" name="Add-CORS">
-						<DisplayName>Add-CORS</DisplayName>
-						<Properties/>
-						<Add>
-							<Headers>
-								<Header name="Access-Control-Allow-Origin">{request.header.origin}</Header>
-								<Header name="Access-Control-Allow-Headers">origin, x-requested-with, accept, content-type</Header>
-								<Header name="Access-Control-Max-Age">3628800</Header>
-								<Header name="Access-Control-Allow-Methods">GET, PUT, POST, DELETE</Header>
-							</Headers>
-						</Add>
-						<IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
-						<AssignTo createNew="false" transport="http" type="response"/>
-					</AssignMessage>
-					```
-					after all click Save.
-			To test, you can use CORS tester like `https://test-cors.org` and check if the Preflight OPTIONS call happens and the response headers are set as expected.
-
-1.8. Quiz - Getting Started with API Development
-	1/7 Where is the API Proxy typically located?		Between the Application and the Backend
-	2/7 One of the advantages of an API proxy is that it hides the complexity of backend systems from the application developer?		TRUE
-	3/7 3 primary componetns that make up an API Proxy?					Resources, Target Endpoint, Proxy Endpoint
-	4/7 Which is a type of policy flow?									PreFlow, ConditionalFlow, PostFlow, PostClientFlow, [o] All of the above
-	5/7 Trace is a useful tool when it comes to debugging an API?		TRUE
-	6/7 Which of the following is the proper format for Conditions?		<Condition>{variable.name}{operator}{"value"}</Condition>
-	7/7 Conditional Flows are evaluated top to bottom so you should include your catch all condition at the very bottom?		TRUE
-
-### Module 2 - API Policies and Management
-2.1. API Policies Overview
-2.1.1. Module Overview
-	Cover the various out of the box policies in the Apigee API platform, and how to create custom policies.
-2.1.2. Policy Overview
-	Policies are the fundamental building blocks that make up your API.
-	What is a Policy?
-		- is a module that implementes a specific, limited management function
-		- by using policies, you can 'program' API behavior without writing any code
-		- designed to let you add common types of management capabilities to an API easily and reliably
-		- can also implement custom login in the form of JavaScript, Python, Java, and XSLT with extension policies
-	Out of the box policies (pre-built policies)
-		- Traffic management policies	Cache policies, Concurrent Rate Limit policy, Quota policy, Reset Quota policy, Spike Arrest policy
-		- Mediation policies			Access Entity policy, Assign Message policy, Extract Variables policy, JSON to XML policy, Key Value Map Operations policy, Raise Fault policy, SOAP Message Validation policy, XML to SOAP policy, XSL Tranform policy
-		- Security policies				Access Control policy, Basic Authentication policy, JSON Threat Protection policy, LDAP policy(On-Prem installation only), OAuth v2.0 policies, OAuth v1.0a policy, Regular Expression Protection policy, SAML Assertion policies, Verify API Key policy, XML Threat Protection policy
-		- Extension policies			Java Callout policy, JavaScript policy, Message Logging policy, Python Script policy, Serice Callout policy, Statistics Collection policy		NOTE: Some are for Cloud Enterprise only
-	Policies enable fine grain controls in the APi proxy
-	Build APIs faster to help...
-		- Traffic Management	manage interactions with API consumers and optimize performance
-			Quota, Spike Arrest, Response Cache, Lookup Cache, Populate Cache, Invalidate Cache, Reset Quota
-		- Mediation		transform, translate and reformat data for easy consumption
-			JSON to XML, XML to JSON, Raise Fault, XSL Transform, SOAP Message Validation, Assign Message, Extract Variables, Access Entity, Key Value Map Operations
-		- Security		secure APIs and protect back-end systems from attack
-			XML Threat Protection, JSON Threat Protection, Regular Expression Protection, OAuth v2.0, Get OAuth v2.0 Info, OAuth v1.0a, Verify API Key, Access Control, Generate SAML Assertion, Validate SAML Assertion
-		- Extension		extend with programming when you need it
-			Java Callout, Python, JavaScript, Service Callout, Statistics Collector, Message Logging
-2.1.3. Traffic Management
-	Some quick walkthrough example scenarios:
-	Spike Arrest
-		- protect target backend against severe traffic spikes and DoS attacks
-		- control requests by second and minute
-		- typically used in "preflow"
-	Quota		Quota, Reset Quota
-		- limit number of requests over a period of time
-		- able to limit for everyone, or configure based on product, developer, etc.
-		- typically used in "preflow"
-		- `Reset Quota` policy to reset it
-	Concurrent Rate Limit
-		- used to limit the number of concurrent connections, throttles inbound connections from Edge to backend services
-		- NOT typically used but is available
-		- attach to both the request and response flows in the Target endpoint
-	Response Cache
-		- cache the whole HTTP response (body, headers, status code, etc)
-		- can improve performance by retrieving response from the cache instead of back end
-		- attach in both the request and response flows
-		- typically only used with GET calls
-	Cache		Lookup Cache, Populate Cache, Invalidate Cache
-		- cache specific pieces of data within the proxy
-		- examples: tokens, service callout responses, data from previous calls, etc.
-		- control the cache by "populate", "lookup", "invalidate"
-
-2.1.4. Practice Quiz
-	1/1	API Policies can NOT be strung together in an API proxy. Only one API policy can exist in an API proxy?			FALSE
-
-2.2. Lab: Traffic Management
-2.2.1. Spike Arrest
-	TODO... lab
-
-2.2.2. Quota
-	TODO... lab
-	References
-		Spike Arrest Policy - http://docs.apigee.com/api-services/reference/spike-arrest-policy
-		Rate Limiting - http://docs.apigee.com/api-services/content/rate-limiting
-		Quota Policy Reference - http://docs.apigee.com/api-services/reference/quota-policy
-		Community post on setting up dynamic quotas https://community.apigee.com/questions/1488/how-do-the-quota-settings-on-an-api-product-intera.html
-		Comparing Rate Limiting Policies - http://docs.apigee.com/api-services/content/comparing-quota-spike-arrest-and-concurrent-rate-limit-policies
-
-2.3. API Policies Overview (continued)
-2.3.1. Mediation
-	Mediation covers the group of policies that interact with, and have the ability to transform the request in response as your proxy executes.
-	In this module, we'll review the Apigee Edge policies specific to mediation.
-	JSON to XML, XML to JSON
-		TODO...
-	XSL Transform
-	SOAP Message Validation
-	Assign Message
-	Extract Variables
-	Extract Variables + Assign Message
-	Raise Fault
-	Call All Flow Example
-	Access Entity
-	Key Value Map (KVM) Operations
-	
-2.3.2. API Security
-	Cover all the policies that pertain to security within the Apigee Edge Management Platform.
-	Basic Authentication
-	XML, JSON Regex, Threat Protection
-	Verify API Key Policy
-	OAuth v1.0a
-	OAuth v2
-	SAML		Generate SAML Assertion, Validation SAML Assertion
-	Access Control
-	
-2.4. Lab: Mediation and Security
-2.4.1. Mediation
-	TODO...
-2.4.2. Security
-	TODO...
-	References
-		Assign Message Policy - https://docs.apigee.com/api-services/reference/assign-message-policy
-		Basic Authentication Policy - https://docs.apigee.com/api-services/reference/basic-authentication-policy
-
-2.5. Quiz - API Policies and Management
-	1/4	In Apigee Edge, if an out of the box policy is not provided, you can create your own custom policy?		=> TRUE
-	2/4	The Spike Arrest policy helps protect against a severe spike in traffic and denial of service attacks. As such, where should this policy typically be located?		PreFlow/PostFlow/ConditionalFlow/PostClientFlow	=> PreFlow
-	3/4	Mediation refers to which of the following?			=> The ability to transform the request and response. NOT: The ability to secure your API through authentication; The ability to manage traffic coming into your API; The ability to capture analytics on the API performance
-	4/4	As a recommendation, OAuth v2 is preferred over OAuth v1.0a				=> TRUE
-### Module 3 - Target Servers and API Products
-3.1. Target Servers
-	Key Concepts
-	- Compare the various types of API product strategies
-	- Apply Named Target Servers to your API proxies
-	- Build in authentication to a target server
-3.1.1. Module Overview
-	- discover how to secure and name Target Servers in Apigee Edge
-	- provide an overview of the commonly used methods to productize APIs
-	- API products is an important topic covered in the Fundamentals course so we'll be showing you how to bundle the API proxies you have created into "products"
-	- Hands on exercises are included to walk you through the process.
-3.1.2. Dealing with Secure Target Server
-	Building Target Authentication
-	- Hard Code
-	- Build Time Replacement
-	- Using Node.js Access Vault		NOTE: Only Node.js
-	- Using Key Value Map
-	TODO...
-3.1.3. Setting up a Named Target Server
-	Exiting Target URL
-	TODO...
-	Target Server with SSL
-	Multiple Target Servers
-	Load Balancer
-	- RoundRobin
-	- Weighted
-	- LeastConnection
-	Health Monitor - HTTPMonitor
-	Health Monitor - TCPMonitor
-3.2. Lab: KVM and Target Server Creation
-3.2.1. Secure Target Server
-	Problem: hard-coding the auth credentials in Assign Message policy might have to be changed when promoted to other environments
-	Solution: By using encrypted Key Value Maps
-	TODO...
-3.2.2. Setting Up Named Target Server
-	Admin > Environments
-	TODO...
-
-3.3. API Products
-3.3.1. Product Design
-	Product Overview
-	TODO...
-	Product Strategies
-	- API Proxy Model		1-to-1	api proxy to product
-	- Business Model		business unit. multiple API resources to product
-	- Ownership Model		dev team unit. multiple API resources to product
-	- Service Plan Model	by service level e.g. Bronze, Gold plan grouping API resources to product
-3.4. Lab: Product, Developer, and Developer Apps
-3.4.1. Product, Developer, and Developer App
-	Publish > +API Product
-	Publish > Developers,  +Developer
-	Publish > Apps
-	Verify API Key policy
-	TODO...
-	
-3.5. Quiz - Target Servers and API Products
-	TODO...
-### Module 4 - Error Handling and Logging
-4.1. Error Handling and Logging
-4.1.1. Module Overview
-	TODO...
-4.1.2. Fault Rules and Error Responses
-	Terminology
-	- Raise Fault policy
-	- Edge raises an error during policy execution
-	- Fault Rule = Fault Handler ()
-	TODO...
-	Fault handling
-	Rewrite Backend Error Response
-	Raise Fault policy
-	
-4.1.3. Logging
-	Edge Logging Services
-	Message Logging Policy		that is an asynchronous flow in the ProxyEndpoint in the PostClientFlow. If it include the message logging policy here, then Apigee will log the message after the response is sent to the client.
-	TODO...
-4.2. Lab: Fault Rules Error Responses and Logging
-4.2.1. Fault Rules Error Responses
-	TODO...
-4.2.2. Logging to External Service Provider - Loggly
-	TODO...
-4.3. Quiz - Error Handling and Logging
-	TODO...
-
-### Module 5 - Shared Flows, Flow Hooks, and Extensions
-5.1. Shared Flows and Flow Hooks, Flow Hooks, and Extensions
-5.1.1. Module Overview
-	TODO...
-5.1.2. Shared Flows and Flow Hooks
-	What is a Shared Flow?
-	TODO...
-	Flow Hooks
-	- Pre-proxy Flow Hook
-	- Pre-target Flow Hook
-	- Post-target Flow Hook
-	- Post-poxy Flow Hook
-5.1.3. Extentions
-	JavaScript Callout
-	TODO...
-	Flow Callout		Calls out to a shared flow
-	Statistics Collector		
-5.2. Lab: Shared Flows
-5.2.1. Shared Flows and Flow Hooks
-	TODO...
-5.3. Quiz - Shared Flows and Flow Hooks
-	TODO...
-5.4. Optional: Optional Labs
-5.4.1. Extensions - Java
-	TODO...
-5.4.2. Extensions - Python
-	TODO...
-5.4.3. Honors Lesson Completion
-	TODO...
-### Module 6 - Mediation, Caching, and Node.js Integration
-6.1. Service Callout and Advance Mediation
-6.1.1. Moduule Overview
-6.1.2. Service Callout and Mash Ups
-6.1.3. Advance Mediation with XSL and SOAP
-6.1.4. Practice Quiz
-6.2. Lab: Mediation and Caching
-6.2.1. Service Callout
-6.2.2. Advanced Mediation
-6.3. Caching and Analytics
-6.3.1. Caching
-6.3.2. Edge Analytics
-6.4. Lab: Caching and Analytics
-6.4.1. Caching
-6.4.2. Edge Analytics
-6.5. Node.js Integration and Deployment Tools
-6.5.1. Node.js Integration with Apigee Edge
-6.5.2. Packaging and Deployment
-6.6. Lab: Node.js Integration and Deployment Tools
-6.6.1. Node.js Integration with Edge
-6.6.2. Deployment Tools
-6.7. Quiz - Advance Development Topics
 
 
 ## COURSE: Install and Manage Google Cloud's Apigee API Platform
